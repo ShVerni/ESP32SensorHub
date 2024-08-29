@@ -11,6 +11,7 @@
 #include <ESPAsyncWiFiManager.h>
 #include <ESP32Time.h>
 #include <Storage.h>
+#include <WebhookManager.h>
 #include <Configuration.h>
 #include <LEDIndicator.h>
 #include <SignalManager.h>
@@ -64,8 +65,10 @@ SensorManager sensors;
 /// @brief Signal manager object
 SignalManager receivers;
 
+WebhookManager webhooks(&storage, "webhooks.json");
+
 /// @brief Webserver handling all requests
-Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config);
+Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config, &webhooks);
 
 /******** Declare sensor and receiver objects here ********/
 
@@ -153,6 +156,9 @@ void setup() {
 	// Print the configured sensors and receivers
 	Serial.println(sensors.getSensorInfo());
 	Serial.println(receivers.getReceiverInfo());
+
+	// Load webhooks, if any;
+	webhooks.loadWebhooks();
 
 	// Start signal processor loop (8K of stack depth is probably overkill, but it does process potentially large JSON strings and we have the RAM, so better to be safe)
 	xTaskCreate(SignalManager::SignalProcessorTaskWrapper, "Command Processor Loop", 8192, &receivers, 1, NULL);

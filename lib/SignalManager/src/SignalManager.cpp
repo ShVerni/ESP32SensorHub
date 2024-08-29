@@ -88,7 +88,9 @@ String SignalManager::getReceiverInfo() {
 			receiver_array[r.positionID]["signals"][s.second] = s.first;
 		}
 	}
+	// Create string to hold output
 	String output;
+	// Serialize to string
 	serializeJson(doc, output);
 	return output;
 }

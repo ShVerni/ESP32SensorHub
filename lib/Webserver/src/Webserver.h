@@ -22,6 +22,7 @@
 #include <Configuration.h>
 #include <SensorManager.h>
 #include <SignalManager.h>
+#include <WebhookManager.h>
 #include <HTTPClient.h>
 #include <LEDIndicator.h>
 #include <vector>
@@ -32,7 +33,7 @@ class Webserver {
 		/// @brief Used to signal that a reboot is requested or needed
 		bool shouldReboot = false;
 		
-		Webserver(AsyncWebServer* webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config);
+		Webserver(AsyncWebServer* webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, WebhookManager* Webhooks);
 		bool ServerStart();
 		void ServerStop();
 		static void RebootCheckerTaskWrapper(void* arg);
@@ -58,6 +59,9 @@ class Webserver {
 
 		/// @brief Configuration object for managing settings
 		Configuration* config;
+
+		/// @brief WebhooksManager object for managing webhooks
+		WebhookManager* webhooks;
 
 		/// @brief Used to indicate an upload is too large and needs to be aborted
 		static bool upload_abort;

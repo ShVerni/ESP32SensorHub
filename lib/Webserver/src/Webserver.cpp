@@ -17,7 +17,8 @@ bool Webserver::Webserver::upload_abort = false;
 /// @param Sensors A pointer to a SensorManager object
 /// @param Sensors A pointer to a SignalManager object
 /// @param Config A pointer to a Configuration object
-Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config) {
+/// @param Webhooks A pointer to a WebhooksManager object
+Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, WebhookManager* Webhooks) {
 	server = Webserver;
 	storage = Storage;
 	led = LED;
@@ -25,6 +26,7 @@ Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, LEDIndicator* 
 	sensors = Sensors;
 	receivers = Signals;
 	config = Config;
+	webhooks = Webhooks;
 }
 
 /// @brief Starts the update server
@@ -110,7 +112,7 @@ bool Webserver::ServerStart() {
 			if (config->updateConfig(config_string)) {
 				if (save) {
 					// Attempt to save config
-					if(!config->saveConfig()) {
+					if(!config->saveConfig(config_string)) {
 						request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not save config settings");
 						return;
 					}
@@ -207,6 +209,109 @@ bool Webserver::ServerStart() {
 
 			// Create response
 			request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Get curent webhooks
+	server->on("/webhooks", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		request->send(HTTP_CODE_OK, "text/json", webhooks->getWebhooks());
+	});
+
+	// Update webhooks
+	server->on("/webhooks", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("webhooks", true) && request->hasParam("save", true)) {
+			// Parse data payload
+			bool save = request->getParam("save", true)->value() == "1";
+			String webhooks_string = request->getParam("webhooks", true)->value();
+			// Attempt to apply config data
+			if (webhooks->updateWebhooks(webhooks_string)) {
+				if (save) {
+					// Attempt to save config
+					if(!webhooks->saveWebhooks(webhooks_string)) {
+						request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not save webhook settings");
+						return;
+					}
+				}
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			} else {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply webhook settings");
+			}
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Fires a webhook using a GET request and the webhook's position ID
+	server->on("/webhookGet", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("webhook", true) && request->hasParam("type", true)) {
+			int webhookPosID = request->getParam("receiver", true)->value().toInt();
+			String type = request->getParam("type", true)->value();
+			type.toLowerCase();
+			if (request->hasParam("parameters", true)) {
+				String parameters = request->getParam("parameters", true)->value();
+				if (type == "json") {
+					request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, parameters));
+				} else {
+					// Convert from JSON to std::map<String, String>
+					// Allocate the JSON document
+					JsonDocument doc;
+					// Deserialize file contents
+					DeserializationError error = deserializeJson(doc, parameters);
+					// Test if parsing succeeds.
+					if (error) {
+						Serial.print(F("Deserialization failed: "));
+						Serial.println(error.f_str());
+						request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad JSON parameter data");
+						return;
+					}
+					// Build parameter map
+					std::map<String, String> params;
+					for (JsonPair param : doc.as<JsonObject>()) {
+						params[param.key().c_str()] = param.value().as<String>();
+					}
+					request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, params));
+				}
+
+			} else {
+				request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID));
+			}
+			
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Fires a webhook using a POST request and the webhook's position ID
+	server->on("/webhookPost", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("webhook", true) && request->hasParam("type", true) && request->hasParam("parameters", true)) {
+			int webhookPosID = request->getParam("receiver", true)->value().toInt();
+			String type = request->getParam("type", true)->value();
+			type.toLowerCase();
+			String parameters = request->getParam("parameters", true)->value();
+			if (type == "json") {
+				request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, parameters));
+			} else {
+				// Convert from JSON to std::map<String, String>
+				// Allocate the JSON document
+				JsonDocument doc;
+				// Deserialize file contents
+				DeserializationError error = deserializeJson(doc, parameters);
+				// Test if parsing succeeds.
+				if (error) {
+					Serial.print(F("Deserialization failed: "));
+					Serial.println(error.f_str());
+					request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad JSON parameter data");
+					return;
+				}
+				// Build parameter map
+				std::map<String, String> params;
+				for (JsonPair param : doc.as<JsonObject>()) {
+					params[param.key().c_str()] = param.value().as<String>();
+				}
+				request->send(HTTP_CODE_OK, "text/json", webhooks->firePost(webhookPosID, params));
+			}			
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
