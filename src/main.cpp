@@ -27,10 +27,6 @@ extern const String FW_VERSION = "0.5.0";
 #ifdef WIFI_CLIENT
 	extern const bool WiFiClient = true;
 	#include <WiFiConfig.h>
-	// NTP Variables
-	const char* ntpServer = "pool.ntp.org";
-	const int   daylightOffset_sec = 3600;
-	const long  gmtOffset_sec = -5 * 3600;
 	// Button to clear saved WiFi client settings
 	const int ResetButton = D4;
 #else
@@ -127,7 +123,7 @@ void setup() {
 		WiFi.setAutoReconnect(true);
 
 		// Set local time via NTP
-		configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer);
 		Serial.println("Time set via NTP");
 		pinMode(ResetButton, INPUT_PULLUP);
 	#else
@@ -182,7 +178,7 @@ void loop() {
 	#ifdef WIFI_CLIENT
 		// Synchronize the time every 6 hours
 		if (current_mills - previous_millis_ntp > 21600000) {
-			configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+			configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer);
 			previous_millis_ntp = current_mills;
 		}
 		// Check if need to reset WiFi settings

@@ -12,7 +12,7 @@ WebhookManager::WebhookManager(Storage* Storage, String configFile) {
 bool WebhookManager::loadWebhooks() {
 	String json_string = storage->readFile(config);
 	if (json_string == "") {
-		Serial.println("Could not load config file, or it doesn't exist");
+		Serial.println("Could not load webhook config file, or it doesn't exist");
 		return false;
 	}
 	return updateWebhooks(json_string);
