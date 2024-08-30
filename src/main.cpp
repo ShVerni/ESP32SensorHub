@@ -69,7 +69,7 @@ Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config
 /******** Declare sensor and receiver objects here ********/
 
 
-/******** End sensor adn receiver object declaration ********/
+/******** End sensor and receiver object declaration ********/
 
 void setup() {
 	// Start serial
@@ -118,7 +118,7 @@ void setup() {
 		// Configure WiFi client
 		DNSServer dns;
 		AsyncWiFiManager manager(&server, &dns);
-		WiFiConfig configurator(&manager, &led, "SensorHub_Config", "ESP32Sensor");
+		WiFiConfig configurator(&manager, &led, config.currentConfig.configSSID, config.currentConfig.configPW);
 		configurator.connectWiFi();
 		WiFi.setAutoReconnect(true);
 
@@ -153,7 +153,7 @@ void setup() {
 	Serial.println(sensors.getSensorInfo());
 	Serial.println(receivers.getReceiverInfo());
 
-	// Load webhooks, if any;
+	// Load webhooks, if any
 	webhooks.loadWebhooks();
 
 	// Start signal processor loop (8K of stack depth is probably overkill, but it does process potentially large JSON strings and we have the RAM, so better to be safe)

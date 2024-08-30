@@ -30,6 +30,12 @@ class Configuration {
 
 			/// @brief Offset from GMT in seconds
 			long  gmtOffset_sec = -18000;
+
+			/// @brief SSID for configuration interface
+			String configSSID = "SensorHub_Config";
+
+			/// @brief Password for configuration interface
+			String configPW = "ESP32Sensor";
 		} currentConfig;
 
 		Configuration(Storage* Storage, String File = "config.json");
