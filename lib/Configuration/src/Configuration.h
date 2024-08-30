@@ -23,13 +23,13 @@ class Configuration {
 			int period = 10000;
 
 			/// @brief NTP server
-			const char* ntpServer = "pool.ntp.org";
+			String ntpServer = "pool.ntp.org";
 
 			/// @brief Daylight savings time offset in seconds
-			const int   daylightOffset_sec = 3600;
+			int daylightOffset_sec = 3600;
 
 			/// @brief Offset from GMT in seconds
-			const long  gmtOffset_sec = -18000;
+			long  gmtOffset_sec = -18000;
 		} currentConfig;
 
 		Configuration(Storage* Storage, String File = "config.json");

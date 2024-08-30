@@ -50,6 +50,10 @@ bool Configuration::updateConfig(String config) {
 	// Assign loaded values
 	currentConfig.enabled = doc["enabled"].as<bool>();
 	currentConfig.period = doc["period"].as<int>();
+	currentConfig.ntpServer = doc["ntpServer"].as<String>();
+	currentConfig.daylightOffset_sec = doc["gmtOffset"].as<int>();
+	currentConfig.gmtOffset_sec = doc["daylightOffset"].as<long>();
+
 	return true;
 }
 
@@ -84,6 +88,9 @@ String Configuration::configToJSON() {
 	// Assign current values
 	doc["enabled"] = currentConfig.enabled;
 	doc["period"] = currentConfig.period;
+	doc["ntpServer"] = currentConfig.ntpServer;
+	doc["gmtOffset"] = currentConfig.gmtOffset_sec;
+	doc["daylightOffset"] = currentConfig.daylightOffset_sec;
 
 	// Create string to hold output
 	String output;

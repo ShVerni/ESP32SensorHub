@@ -123,7 +123,7 @@ void setup() {
 		WiFi.setAutoReconnect(true);
 
 		// Set local time via NTP
-		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer);
+		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
 		Serial.println("Time set via NTP");
 		pinMode(ResetButton, INPUT_PULLUP);
 	#else
@@ -178,7 +178,7 @@ void loop() {
 	#ifdef WIFI_CLIENT
 		// Synchronize the time every 6 hours
 		if (current_mills - previous_millis_ntp > 21600000) {
-			configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer);
+			configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
 			previous_millis_ntp = current_mills;
 		}
 		// Check if need to reset WiFi settings
