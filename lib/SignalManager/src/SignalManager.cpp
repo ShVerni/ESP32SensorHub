@@ -95,6 +95,22 @@ String SignalManager::getReceiverInfo() {
 	return output;
 }
 
+
+/// @brief Gets any available config settings for a signal receive device
+/// @param receiverPosID The position ID of the signal receive
+/// @return A JSON string of configurable settings
+String SignalManager::getReceiverConfig(int receiverPosID) {
+	return receivers[receiverPosID].receiver->getConfig();
+}
+
+/// @brief Gets any available config settings for a signal receiver device
+/// @param receiverPosID The position ID of the signal receive
+/// @param config A JSON string of the configuration
+/// @return True on success
+bool SignalManager::setReceiverConfig(int receiverPosID, String config) {
+	return receivers[receiverPosID].receiver->setConfig(config);
+}
+
 /// @brief Executes a signal on a receiver immediately. Use carefully, may cause issues with signals also being processed from queue
 /// @param receiverPosID The position ID of the signal receiver
 /// @param signal The name of the signal

@@ -45,5 +45,7 @@ class SignalManager {
 		String processSignalImmediately(int receiverPosID, String signal, String payload = "");
 		String processSignalImmediately(int receiverPosID, int signal, String payload = "");
 		String getReceiverInfo();
+		String getReceiverConfig(int receiverPosID);
+		bool setReceiverConfig(int receiverPosID, String config);
 		static void SignalProcessorTaskWrapper(void* signalManager);
 };

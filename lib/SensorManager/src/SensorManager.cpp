@@ -90,6 +90,20 @@ String SensorManager::getSensorInfo() {
 	return output;
 }
 
+/// @brief Gets any available config settings for a sensor device
+/// @param sensorPosID The position ID of the sensor
+/// @return A JSON string of configurable settings
+String SensorManager::getSensorConfig(int sensorPosID) {
+	return sensors[sensorPosID]->getConfig();
+}
+
+/// @brief Gets any available config settings for a sensor device
+/// @param sensorPosID The position ID of the sensor
+/// @param config A JSON string of the configuration
+/// @return True on success
+bool SensorManager::setSensorConfig(int sensorPosID, String config) {
+	return sensors[sensorPosID]->setConfig(config);
+}
 
 /// @brief Used to calibrate sensor
 /// @param sensorPosID The position ID of the sensor to calibrate

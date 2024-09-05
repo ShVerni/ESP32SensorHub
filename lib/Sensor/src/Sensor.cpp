@@ -18,3 +18,16 @@ bool Sensor::takeMeasurement() {
 std::tuple<Sensor::calibration_response, String> Sensor::calibrate(int step) {
 	return { Sensor::calibration_response::error, "No calibration method" };
 }
+
+/// @brief Gets any available config settings for the current device
+/// @return A JSON string of configurable settings
+String Sensor::getConfig() {
+	return "{}";
+}
+
+/// @brief Updates configuration of device
+/// @param config A JSON string of the configuration settings
+/// @return True on success
+bool Sensor::setConfig(String config) {
+	return true;
+}

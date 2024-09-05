@@ -17,6 +17,7 @@
 #include <SignalManager.h>
 #include <WebServer.h>
 #include <SensorManager.h>
+#include <ResetButton.h>
 
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
@@ -28,7 +29,6 @@ extern const String FW_VERSION = "0.5.0";
 	extern const bool WiFiClient = true;
 	#include <WiFiConfig.h>
 	// Button to clear saved WiFi client settings
-	const int ResetButton = D4;
 #else
 	extern const bool WiFiClient = false;
 	/// @brief The SSID of the device AP
@@ -68,6 +68,7 @@ Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config
 
 /******** Declare sensor and receiver objects here ********/
 
+ResetButton reset_button(&storage);
 
 /******** End sensor and receiver object declaration ********/
 
@@ -125,7 +126,6 @@ void setup() {
 		// Set local time via NTP
 		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
 		Serial.println("Time set via NTP");
-		pinMode(ResetButton, INPUT_PULLUP);
 	#else
 		// Start AP
 		WiFi.softAP(ssid, password);
@@ -140,6 +140,7 @@ void setup() {
 
 	/******** Add sensors and receivers here ********/
 
+	receivers.addReceiver(&reset_button);
 
 	/******** End sensor and receiver addition section ********/
 
@@ -180,18 +181,6 @@ void loop() {
 		if (current_mills - previous_millis_ntp > 21600000) {
 			configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
 			previous_millis_ntp = current_mills;
-		}
-		// Check if need to reset WiFi settings
-		if (digitalRead(ResetButton) == LOW) {
-			WiFi.mode(WIFI_AP_STA); // Cannot erase if not in STA mode!
-			WiFi.persistent(true);
-			WiFi.disconnect(true, true);
-			WiFi.persistent(false);
-			Serial.println("Rebooting...");
-			// Delay to show LED
-			led.showColor(LEDIndicator::Colors::Purple);
-			delay(3000);
-			ESP.restart();
 		}
 	#endif
 	if (config.currentConfig.enabled) {

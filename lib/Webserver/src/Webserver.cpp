@@ -97,12 +97,12 @@ bool Webserver::ServerStart() {
 		request->send(HTTP_CODE_OK, "text/json", sensors->getLastMeasurement());
 	});
 
-	// Get curent configuration
+	// Get curent global configuration
 	server->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		request->send(HTTP_CODE_OK, "text/json", config->getConfig());
 	});
 
-	// Update configuration
+	// Update global configuration
 	server->on("/config", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("config", true) && request->hasParam("save", true)) {
 			// Parse data payload
@@ -117,6 +117,72 @@ bool Webserver::ServerStart() {
 						return;
 					}
 				}
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			} else {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
+			}
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Gets last measurement. Add GET paramater "update" (/getMeasurement?update) to take a new measurement first
+	server->on("/getMeasurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("update")) {
+			// Attempt to take new measurement
+			if (!sensors->takeMeasurement()) {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
+				return;
+			}
+		}
+		request->send(HTTP_CODE_OK, "text/json", sensors->getLastMeasurement());
+	});
+
+	// Get curent configuration of a sensor
+	server->on("/config/sensor", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("sensor")) {
+			int sensorPosID = request->getParam("sensor")->value().toInt();
+			request->send(HTTP_CODE_OK, "text/json", sensors->getSensorConfig(sensorPosID));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Update configuration of a sensor
+	server->on("/config/sensor", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("config", true) && request->hasParam("sensor", true)) {
+			// Parse data payload
+			int sensorPosID = request->getParam("sensor", true)->value().toInt();
+			String config = request->getParam("config", true)->value();
+			// Attempt to apply config data
+			if (sensors->setSensorConfig(sensorPosID, config)) {
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			} else {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
+			}
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Get curent configuration of a receiver
+	server->on("/config/receiver", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver")) {
+			int receiverPosID = request->getParam("sensor")->value().toInt();
+			request->send(HTTP_CODE_OK, "text/json", receivers->getReceiverConfig(receiverPosID));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Update configuration of a receiver
+	server->on("/config/receiver", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("config", true) && request->hasParam("receiver", true)) {
+			// Parse data payload
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			String config = request->getParam("config", true)->value();
+			// Attempt to apply config data
+			if (receivers->setReceiverConfig(receiverPosID, config)) {
 				request->send(HTTP_CODE_OK, "text/plain", "OK");
 			} else {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
@@ -460,7 +526,7 @@ void Webserver::ServerStop() {
 }
 
 /// @brief Wraps the reboot checker task for static access
-/// @param arg The CommandProcessor object
+/// @param arg The Webserver object
 void Webserver::RebootCheckerTaskWrapper(void* arg) {
 	static_cast<Webserver*>(arg)->RebootChecker();
 }

@@ -43,5 +43,7 @@ class Sensor {
 
 		virtual bool begin();
 		virtual bool takeMeasurement();
+		virtual String getConfig();
+		virtual bool setConfig(String config);
 		virtual std::tuple<Sensor::calibration_response, String> calibrate(int step);
 };

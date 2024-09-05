@@ -31,4 +31,6 @@ class SignalReceiver {
 
 		virtual bool begin();
 		virtual String receiveSignal(int signal, String payload = "");
+		virtual String getConfig();
+		virtual bool setConfig(String config);
 };
