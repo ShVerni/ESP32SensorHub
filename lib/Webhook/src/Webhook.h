@@ -12,6 +12,7 @@
 #include <ArduinoJson.h>
 #include <map>
 
+/// @brief Defines a generic webhook class for inheriting
 class Webhook {
 	public:		
 		/// @brief Describes a webhook

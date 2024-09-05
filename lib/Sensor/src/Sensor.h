@@ -11,6 +11,7 @@
 /// @brief Defines a generic sensor class for inheriting 
 class Sensor {
 	public:
+		/// @brief Possible results from a calibration call
 		enum calibration_response {
 			error,
 			done,

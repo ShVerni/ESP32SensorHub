@@ -14,13 +14,14 @@
 #include <vector>
 #include <map>
 
+/// @brief Manages all available webhooks
 class WebhookManager {
 	private:
 	typedef struct Webhook_info {
 			/// @brief Ths positional ID of the webhook (where it's located in the vector)
 			int positionID;
 
-			/// @brief A pointer to the receiver object
+			/// @brief A pointer to the webhook object
 			std::shared_ptr<Webhook> hook;
 		} Webhook_info;
 
