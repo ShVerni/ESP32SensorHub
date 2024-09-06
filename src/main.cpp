@@ -63,9 +63,6 @@ SignalManager receivers;
 
 WebhookManager webhooks(&storage, "webhooks.json");
 
-/// @brief Webserver handling all requests
-Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config, &webhooks);
-
 /******** Declare sensor and receiver objects here ********/
 
 ResetButton reset_button(&storage);
@@ -122,7 +119,7 @@ void setup() {
 		WiFiConfig configurator(&manager, &led, config.currentConfig.configSSID, config.currentConfig.configPW);
 		configurator.connectWiFi();
 		WiFi.setAutoReconnect(true);
-
+		server.reset();
 		// Set local time via NTP
 		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
 		Serial.println("Time set via NTP");
@@ -130,6 +127,9 @@ void setup() {
 		// Start AP
 		WiFi.softAP(ssid, password);
 	#endif
+	
+	/// @brief Webserver handling all requests
+	Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config, &webhooks);
 
 	// Clear server settings, just in case
 	webserver.ServerStop();
