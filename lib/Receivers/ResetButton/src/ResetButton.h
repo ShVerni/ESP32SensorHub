@@ -45,24 +45,6 @@ class ResetButton : public SignalReceiver {
 		static void ResetCheckerTaskWrapper(void* arg);
 
 	public:
-		/// @brief Holds the description of the device capable of receiving signals
-		struct {
-			/// @brief The number of signals this device can receive
-			int signalQuantity;
-
-			/// @brief The type of device this is
-			String type;
-
-			/// @brief The name of this device
-			String name;
-			
-			/// @brief Contains of map of signals this device can receive and their ID numbers. Signal names must only alphanumeric and underscores, and contain at least on letter
-			std::map<String, int> signals;
-
-			/// @brief The ID of this device
-			int id;
-		} Description;
-
 		ResetButton(Storage* Storage);
 		bool begin();
 		String receiveSignal(int signal, String payload = "");

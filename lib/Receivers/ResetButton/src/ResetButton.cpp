@@ -4,12 +4,17 @@
 /// @param Storage A storage object to use to store settings
 ResetButton::ResetButton(Storage* Storage) {
 	storage = Storage;
-	Description = { .signalQuantity = 1, .type = "button", .name = "Reset Button", .signals = {{"Reset", 0}}, .id = 0 };
 }
 
 /// @brief Starts a reset button
 /// @return True on success
 bool ResetButton::begin() {
+	// Set description
+	Description.signalQuantity = 1;
+	Description.type = "button";
+	Description.name = "Reset Button";
+	Description.signals = {{"Reset", 0}};
+	Description.id = 0;
 	// Create settings directory if necessary
 	if (!storage->fileExists("/settings/sig")) {
 		if (!storage->fileExists("/settings")) {
@@ -34,14 +39,13 @@ bool ResetButton::begin() {
 	if (result) {
 		pinMode(current_config.pin, current_config.mode);
 	}
-	// Start the loop that checks for resets
-	xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 64, this, 1, NULL);
+	// Start the loop that checks for resets (could use an ISR but that has its own issues)
+	xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 1024, this, 1, NULL);
 	return result;
 }
 
-
 /// @brief Receives a signal
-/// @param signal The signal to process (only option is 0 for rest)
+/// @param signal The signal to process (only option is 0 for reset)
 /// @param payload Not used
 /// @return 
 String ResetButton::receiveSignal(int signal, String payload) {

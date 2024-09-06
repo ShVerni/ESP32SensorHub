@@ -18,6 +18,21 @@ bool SignalManager::addReceiver(SignalReceiver* receiver) {
 	return true; // Currently no way to fail this
 }
 
+/// @brief Calls the begin function on all the in-use signal receivers
+/// @return True if all receivers started correctly
+bool SignalManager::beginReceivers() {
+	for (auto const &r : receivers) {
+		if (!r.receiver->begin()) {
+			Serial.println("Could not start " + r.receiver->Description.name);
+			return false;
+		} else {
+			Serial.println("Started " + r.receiver->Description.name);
+		}
+	}
+	return true;
+}
+
+
 /// @brief Adds a signal to the queue for processing
 /// @param receiverPosID The position ID of the signal receiver
 /// @param signal The name of the signal

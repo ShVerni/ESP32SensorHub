@@ -40,6 +40,7 @@ class SignalManager {
 	public:
 		SignalManager();
 		bool addReceiver(SignalReceiver* receiver);
+		bool beginReceivers();
 		bool addSignalToQueue(int receiverPosID, String signal, String payload = "");
 		bool addSignalToQueue(int receiverPosID, int signal, String payload = "");
 		String processSignalImmediately(int receiverPosID, String signal, String payload = "");

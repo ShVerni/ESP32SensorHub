@@ -150,6 +150,12 @@ void setup() {
 		while(true);
 	}
 
+	// Start receivers
+	if (!receivers.beginReceivers()) {
+		led.showColor(LEDIndicator::Colors::Red);
+		while(true);
+	}
+
 	// Print the configured sensors and receivers
 	Serial.println(sensors.getSensorInfo());
 	Serial.println(receivers.getReceiverInfo());
