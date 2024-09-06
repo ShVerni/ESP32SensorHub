@@ -17,17 +17,8 @@
 /// @brief Receives and processes signals for signal receivers
 class SignalManager {
 	private:
-		/// @brief Describes a signal receiver
-		typedef struct receiver_info {
-			/// @brief Ths positional ID of the receiver (where it's located in the vector)
-			int positionID;
-
-			/// @brief A pointer to the receiver object
-			SignalReceiver* receiver;
-		} receiver_info;
-
 		/// @brief Stores all the in-use signal receivers
-		std::vector<receiver_info> receivers;
+		std::vector<SignalReceiver*> receivers;
 
 		/// @brief Queue to hold signals to be processed.
         QueueHandle_t signalQueue;

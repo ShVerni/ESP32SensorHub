@@ -20,7 +20,7 @@ let uprog = {
 		uprog.hPercent.innerHTML = Percent;
 		if (Percent == '100%') { uprog.hFile.disabled = false; }
 	},
-	upload: (destination) => {
+	upload: (path) => {
 		if (uprog.hFile.files.length == 0) {
 			return;
 		}
@@ -29,10 +29,11 @@ let uprog = {
 		uprog.hFile.value = '';
 		let xhr = new XMLHttpRequest(), data = new FormData();
 		data.append('upfile', file);
-		xhr.open('POST', destination);
+		xhr.open('POST', '/upload-file');
+		xhr.setRequestHeader('FILE_UPLOAD_PATH', path);
 		let percent = 0;
-		xhr.upload.onloadstart = (evt) => { uprog.update(0); };
-		xhr.upload.onloadend = (evt) => { uprog.update(100); };
+		xhr.upload.onloadstart = () => { uprog.update(0); };
+		xhr.upload.onloadend = () => { uprog.update(100); };
 		xhr.upload.onprogress = (evt) => {
 			percent = Math.ceil((evt.loaded / evt.total) * 100);
 			uprog.update(percent);
@@ -64,16 +65,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Attach button handlers
 	document.getElementById("up-www").onclick = function() {
-		uprog.upload('/upload-www');
+		uprog.upload('/www');
 	};
 });
 
 // Update the list of files displayed on this page
 function updateFileList() {
 	document.getElementById("file-list").innerHTML = "";
-	// Uncommenting the below will expose the entire file system rather than specific folders which can be listed on after the other
-	//getFileList("/");
-	getFileList("/www")
+	getFileList("/", 5);
 }
 
 // Delete file
@@ -117,10 +116,10 @@ function getFreeStorage() {
 }
 
 // Get list of files, add to DOM
-function getFileList(path) {
+function getFileList(path, depth = 0) {
 	let xhr = new XMLHttpRequest();
 	xhr.responseType = 'json';
-	xhr.open('GET', '/list?path=' + path);
+	xhr.open('GET', '/list?path=' + path + "&depth=" + depth);
 	xhr.onload = function() {
 		if (this.status != 200) {
 			document.getElementById('message').innerHTML = this.response;

@@ -31,10 +31,6 @@ extern const String FW_VERSION = "0.5.0";
 	// Button to clear saved WiFi client settings
 #else
 	extern const bool WiFiClient = false;
-	/// @brief The SSID of the device AP
-	const char* ssid = "ESP32SensorHub";
-	/// @brief The password of the device AP
-	const char* password = "ESP32S3ns0rHub!";
 #endif
 
 /// @brief Stores settings in NVS
@@ -125,7 +121,7 @@ void setup() {
 		Serial.println("Time set via NTP");
 	#else
 		// Start AP
-		WiFi.softAP(ssid, password);
+		WiFi.softAP(config.currentConfig.configSSID, config.currentConfig.configPW);
 	#endif
 	
 	/// @brief Webserver handling all requests

@@ -63,10 +63,13 @@ class Webserver {
 		/// @brief WebhooksManager object for managing webhooks
 		WebhookManager* webhooks;
 
-		/// @brief Used to indicate an upload is too large and needs to be aborted
+		/// @brief Used to indicate an upload had to be aborted
 		static bool upload_abort;
 
-		static void onUpload_www(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
+		/// @brief Used to indicate the status code of the last upload
+		static int upload_response_code;
+
+		static void onUpload_file(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 		static void onUpdate(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 		void RebootChecker();
 };
@@ -215,7 +218,8 @@ var uprog = {
 	uprog.hFile.value = '';
 	let xhr = new XMLHttpRequest(), data = new FormData();
 	data.append('upfile', file);
-	xhr.open('POST', '/upload-www');
+	xhr.open('POST', '/upload-file');
+	xhr.setRequestHeader('FILE_UPLOAD_PATH', '/www');
 	let percent = 0;
 	xhr.upload.onloadstart = (evt) => { uprog.update(0); };
 	xhr.upload.onloadend = (evt) => { uprog.update(100); };

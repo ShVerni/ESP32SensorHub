@@ -6,8 +6,9 @@ extern const bool WiFiClient;
 /// @brief Holds current firmware version
 extern const String FW_VERSION;
 
-// Initialize static variable
-bool Webserver::Webserver::upload_abort = false;
+// Initialize static variables
+bool Webserver::upload_abort = false;
+int Webserver::upload_response_code = 201;
 
 /// @brief Creates a Webserver object
 /// @param Webserver A pointer to an AsyncWebServer object
@@ -50,14 +51,14 @@ bool Webserver::ServerStart() {
 	}
 
 	// Handle file uploads
-	server->on("/upload-www", HTTP_POST, [](AsyncWebServerRequest *request) {
+	server->on("/upload-file", HTTP_POST, [](AsyncWebServerRequest *request) {
 		// Let upload start
 		delay(50);
 		// Construct response
-		AsyncWebServerResponse *response = request->beginResponse(Webserver::upload_abort ? HTTP_CODE_INSUFFICIENT_STORAGE : HTTP_CODE_CREATED , "text/plain", Webserver::upload_abort ? "Insufficient Storage": "File uploaded");
+		AsyncWebServerResponse *response = request->beginResponse(Webserver::upload_response_code, "text/plain", Webserver::upload_abort ? "Upload failed": "File uploaded");
 		response->addHeader("Connection", "close");
 		request->send(response);
-	}, onUpload_www);
+	}, onUpload_file);
 
 	// Handle deletion of files
 	server->on("/delete", HTTP_POST, [this](AsyncWebServerRequest *request) {
@@ -455,7 +456,11 @@ bool Webserver::ServerStart() {
 		if (request->hasParam("path")) {
 			String path = request->getParam("path")->value();
 			if (storage->fileExists(path)) {
-				std::vector<String> file_list = storage->listDir(path, 0);
+				int depth = 0;
+				if (request->hasParam("depth")) {
+					depth = request->getParam("depth")->value().toInt();
+				}
+				std::vector<String> file_list = storage->listDir(path, depth);
 				JsonDocument files;
 				for (int i = 0; i < file_list.size(); i++) {
 					files["files"][i] = file_list[i];
@@ -546,18 +551,25 @@ void Webserver::RebootChecker() {
 	}
 }
 
-/// @brief Handle file uploads to www folder. Adapted from https://github.com/smford/esp32-asyncwebserver-fileupload-example
+/// @brief Handle file uploads to a folder. Adapted from https://github.com/smford/esp32-asyncwebserver-fileupload-example
 /// @param request
 /// @param filename
 /// @param index
 /// @param data
 /// @param len
 /// @param final
-void Webserver::onUpload_www(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+void Webserver::onUpload_file(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
 	if (!index) {
+		if (!request->hasHeader("FILE_UPLOAD_PATH")) {
+			final = true;
+			Webserver::upload_abort = true;
+			Webserver::upload_response_code = HTTP_CODE_BAD_REQUEST;
+			return;
+		}
+		String path = request->header("FILE_UPLOAD_PATH");
 		Webserver::upload_abort = false;
-		request->_tempFile = Storage::getFileSystem()->open("/www/" + filename, "w", true);
-		Serial.println("Uploading file /www/" + filename);
+		request->_tempFile = Storage::getFileSystem()->open(path + "/" + filename, "w", true);
+		Serial.println("Uploading file " + filename);
 	}
 	if (Webserver::upload_abort)
 		return;
@@ -566,6 +578,7 @@ void Webserver::onUpload_www(AsyncWebServerRequest *request, String filename, si
 		if (request->_tempFile.write(data, len) != len) {
 			final = true;
 			Webserver::upload_abort = true;
+			Webserver::upload_response_code = HTTP_CODE_INSUFFICIENT_STORAGE;
 		}
 	}
 	if (final) {
@@ -573,7 +586,9 @@ void Webserver::onUpload_www(AsyncWebServerRequest *request, String filename, si
 		request->_tempFile.close();
 		if (Webserver::upload_abort) {
 			// Remove failed upload
-			Storage::getFileSystem()->remove("/www/" + filename);
+			Storage::getFileSystem()->remove(request->_tempFile.path());
+		} else {
+			Webserver::upload_response_code = HTTP_CODE_CREATED;
 		}
 	}
 }

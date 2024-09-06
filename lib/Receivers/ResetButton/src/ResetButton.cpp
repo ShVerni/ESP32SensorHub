@@ -39,7 +39,7 @@ bool ResetButton::begin() {
 	if (result) {
 		pinMode(current_config.pin, current_config.mode);
 	}
-	// Start the loop that checks for resets (could use an ISR but that has its own issues)
+	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
 	xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 1024, this, 1, NULL);
 	return result;
 }
@@ -47,7 +47,7 @@ bool ResetButton::begin() {
 /// @brief Receives a signal
 /// @param signal The signal to process (only option is 0 for reset)
 /// @param payload Not used
-/// @return 
+/// @return JSON response with OK
 String ResetButton::receiveSignal(int signal, String payload) {
 	if (signal == 0) {
 		reset();

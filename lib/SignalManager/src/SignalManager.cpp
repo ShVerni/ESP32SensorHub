@@ -11,10 +11,7 @@ SignalManager::SignalManager() {
 /// @return True on success
 bool SignalManager::addReceiver(SignalReceiver* receiver) {
 	// Add receiver to in-use list
-	receivers.push_back(receiver_info {
-		.positionID = (int)receivers.size(),
-		.receiver = receiver
-	});
+	receivers.push_back(receiver);
 	return true; // Currently no way to fail this
 }
 
@@ -22,11 +19,11 @@ bool SignalManager::addReceiver(SignalReceiver* receiver) {
 /// @return True if all receivers started correctly
 bool SignalManager::beginReceivers() {
 	for (auto const &r : receivers) {
-		if (!r.receiver->begin()) {
-			Serial.println("Could not start " + r.receiver->Description.name);
+		if (!r->begin()) {
+			Serial.println("Could not start " + r->Description.name);
 			return false;
 		} else {
-			Serial.println("Started " + r.receiver->Description.name);
+			Serial.println("Started " + r->Description.name);
 		}
 	}
 	return true;
@@ -48,7 +45,7 @@ bool SignalManager::addSignalToQueue(int receiverPosID, String signal, String pa
 	// Attempt to convert signal name to ID
 	int signal_id;
 	try {
-		signal_id = receivers[receiverPosID].receiver->Description.signals.at("signal");
+		signal_id = receivers[receiverPosID]->Description.signals.at("signal");
 	} catch (const std::out_of_range& e) {
 		Serial.println("Receiver cannot process signal");
 		return false;
@@ -66,7 +63,7 @@ bool SignalManager::addSignalToQueue(int receiverPosID, String signal, String pa
 bool SignalManager::addSignalToQueue(int receiverPosID, int signal, String payload) {
 	// Check if receiver is in-use
 	if(receiverPosID < 0 || receiverPosID >= receivers.size()) {
-		Serial.println("Receiver position Id out of range");
+		Serial.println("Receiver position ID out of range");
 		return false;
 	}
 
@@ -91,16 +88,16 @@ String SignalManager::getReceiverInfo() {
 	// Create array of receivers
 	JsonArray receiver_array = doc["receivers"].to<JsonArray>();
 
-	for (auto const &r : receivers) {
+	for (int i = 0; i < receivers.size(); i++) {
 		// Add receiver description to JSON document 
-		receiver_array[r.positionID]["positionID"] = r.positionID;
-		receiver_array[r.positionID]["description"]["signalQuantity"] = r.receiver->Description.signalQuantity;
-		receiver_array[r.positionID]["description"]["type"] = r.receiver->Description.type;
-		receiver_array[r.positionID]["description"]["name"] = r.receiver->Description.name;
-		receiver_array[r.positionID]["description"]["id"] = r.receiver->Description.id;
+		receiver_array[i]["positionID"] = i;
+		receiver_array[i]["description"]["signalQuantity"] = receivers[i]->Description.signalQuantity;
+		receiver_array[i]["description"]["type"] = receivers[i]->Description.type;
+		receiver_array[i]["description"]["name"] = receivers[i]->Description.name;
+		receiver_array[i]["description"]["id"] = receivers[i]->Description.id;
 		// Add signals and IDs to JSON document
-		for (auto const &s : r.receiver->Description.signals) {
-			receiver_array[r.positionID]["signals"][s.second] = s.first;
+		for (auto const &s : receivers[i]->Description.signals) {
+			receiver_array[i]["signals"][s.second] = s.first;
 		}
 	}
 	// Create string to hold output
@@ -115,7 +112,7 @@ String SignalManager::getReceiverInfo() {
 /// @param receiverPosID The position ID of the signal receive
 /// @return A JSON string of configurable settings
 String SignalManager::getReceiverConfig(int receiverPosID) {
-	return receivers[receiverPosID].receiver->getConfig();
+	return receivers[receiverPosID]->getConfig();
 }
 
 /// @brief Gets any available config settings for a signal receiver device
@@ -123,7 +120,7 @@ String SignalManager::getReceiverConfig(int receiverPosID) {
 /// @param config A JSON string of the configuration
 /// @return True on success
 bool SignalManager::setReceiverConfig(int receiverPosID, String config) {
-	return receivers[receiverPosID].receiver->setConfig(config);
+	return receivers[receiverPosID]->setConfig(config);
 }
 
 /// @brief Executes a signal on a receiver immediately. Use carefully, may cause issues with signals also being processed from queue
@@ -141,7 +138,7 @@ String SignalManager::processSignalImmediately(int receiverPosID, String signal,
 	// Attempt to convert signal name to ID
 	int signal_id;
 	try {
-		signal_id = receivers[receiverPosID].receiver->Description.signals.at("signal");
+		signal_id = receivers[receiverPosID]->Description.signals.at("signal");
 	} catch (const std::out_of_range& e) {
 		Serial.println("Receiver cannot process signal");
 		return R"({"success": false})";
@@ -162,7 +159,7 @@ String SignalManager::processSignalImmediately(int receiverPosID, int signal, St
 		return R"({"success": false})";
 	}
 	// Process signal
-	return receivers[receiverPosID].receiver->receiveSignal(signal, payload);
+	return receivers[receiverPosID]->receiveSignal(signal, payload);
 }
 
 /// @brief Wraps the signal processor task for static access
@@ -177,7 +174,7 @@ void SignalManager::processSignal() {
 	while(true) {
 		if (xQueueReceive(signalQueue, &signal, 10) == pdTRUE)
 		{
-			receivers[signal[0]].receiver->receiveSignal(signal[1], payloads.front());
+			receivers[signal[0]]->receiveSignal(signal[1], payloads.front());
 			payloads.pop();
 		}
 	}
