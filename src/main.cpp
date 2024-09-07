@@ -13,11 +13,12 @@
 #include <Storage.h>
 #include <WebhookManager.h>
 #include <Configuration.h>
-#include <LEDIndicator.h>
+#include <EventBroadcaster.h>
 #include <SignalManager.h>
 #include <WebServer.h>
 #include <SensorManager.h>
 #include <ResetButton.h>
+#include <LEDIndicator.h>
 
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
@@ -36,6 +37,9 @@ extern const String FW_VERSION = "0.5.0";
 /// @brief Stores settings in NVS
 Preferences settings;
 
+/// @brief Event broadcaster
+EventBroadcaster event;
+
 /// @brief Storage object
 Storage storage;
 
@@ -48,20 +52,22 @@ ESP32Time rtc;
 /// @brief AsyncWebServer object (passed to WfiFiConfig and WebServer)
 AsyncWebServer server(80);
 
-/// @brief LED indicator object
-LEDIndicator led(D8, 1);
-
 /// @brief Sensor manager object
 SensorManager sensors;
 
 /// @brief Signal manager object
 SignalManager receivers;
 
+/// @brief Webhooks manager object
 WebhookManager webhooks(&storage, "webhooks.json");
 
 /******** Declare sensor and receiver objects here ********/
 
-ResetButton reset_button(&storage);
+/// @brief LED indicator object
+LEDIndicator led(D8, 1);
+
+/// @brief Reset button object
+ResetButton reset_button(&storage, &event);
 
 /******** End sensor and receiver object declaration ********/
 
@@ -74,29 +80,37 @@ void setup() {
 	Serial.println("Designed and created by Sam Groveman (C) 2024");
 	Serial.println();
 
-	// Start LEDs
-	led.begin();
+	/******** Add event receivers and loggers here ********/
+
+	event.addReceiver(&led);
+
+	/******** End event receivers and loggers addition section ********/
+
+	if (!event.beginReceivers())	{
+		Serial.println("Could not start all event receivers");
+		while(true);
+	}
 
 	// Show yellow during startup
-	led.showColor(LEDIndicator::Colors::Yellow);
+	event.broadcastEvent(EventBroadcaster::Events::Starting);
 
 	// Start preference storage on NVS
 	if (!settings.begin("sensor-hub", false)) {
-		led.showColor(LEDIndicator::Colors::Red);
+		event.broadcastEvent(EventBroadcaster::Events::Error);
 		Serial.println("Count not start NVS settings");
 		while(true);
 	};
 
 	// Start storage
 	if (!storage.begin()) {
-		led.showColor(LEDIndicator::Colors::Red);
+		event.broadcastEvent(EventBroadcaster::Events::Error);
 		Serial.println("Could not start storage");
 		while(true);
 	}
 
 	// Start configuration manager
 	if (!config.begin()) {
-		led.showColor(LEDIndicator::Colors::Red);
+		event.broadcastEvent(EventBroadcaster::Events::Error);
 		Serial.println("Could not start configuration manager");
 		while(true);
 	}
@@ -112,7 +126,7 @@ void setup() {
 		// Configure WiFi client
 		DNSServer dns;
 		AsyncWiFiManager manager(&server, &dns);
-		WiFiConfig configurator(&manager, &led, config.currentConfig.configSSID, config.currentConfig.configPW);
+		WiFiConfig configurator(&manager, &event, config.currentConfig.configSSID, config.currentConfig.configPW);
 		configurator.connectWiFi();
 		WiFi.setAutoReconnect(true);
 		server.reset();
@@ -125,7 +139,7 @@ void setup() {
 	#endif
 	
 	/// @brief Webserver handling all requests
-	Webserver webserver(&server, &storage, &led, &rtc, &sensors, &receivers, &config, &webhooks);
+	Webserver webserver(&server, &storage, &rtc, &sensors, &receivers, &config, &event, &webhooks);
 
 	// Clear server settings, just in case
 	webserver.ServerStop();
@@ -142,13 +156,13 @@ void setup() {
 
 	// Start sensors
 	if (!sensors.beginSensors()) {
-		led.showColor(LEDIndicator::Colors::Red);
+		event.broadcastEvent(EventBroadcaster::Events::Error);
 		while(true);
 	}
 
 	// Start receivers
 	if (!receivers.beginReceivers()) {
-		led.showColor(LEDIndicator::Colors::Red);
+		event.broadcastEvent(EventBroadcaster::Events::Error);
 		while(true);
 	}
 
@@ -163,7 +177,7 @@ void setup() {
 	xTaskCreate(SignalManager::SignalProcessorTaskWrapper, "Command Processor Loop", 8192, &receivers, 1, NULL);
 
 	// Ready!
-	led.showColor(LEDIndicator::Colors::Cyan);
+	event.broadcastEvent(EventBroadcaster::Events::Ready);
 	Serial.println("System ready!");
 }
 

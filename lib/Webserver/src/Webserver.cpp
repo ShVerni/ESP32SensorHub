@@ -13,20 +13,20 @@ int Webserver::upload_response_code = 201;
 /// @brief Creates a Webserver object
 /// @param Webserver A pointer to an AsyncWebServer object
 /// @param Storage A pointer to a storage object
-/// @param LED A pointer to an LEDIndicator object
 /// @param RTC A pointer to a ESP32Time object
 /// @param Sensors A pointer to a SensorManager object
 /// @param Sensors A pointer to a SignalManager object
 /// @param Config A pointer to a Configuration object
+/// @param Event A pointer to an EventBroadcaster object
 /// @param Webhooks A pointer to a WebhooksManager object
-Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, WebhookManager* Webhooks) {
+Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, EventBroadcaster* Event, WebhookManager* Webhooks) {
 	server = Webserver;
 	storage = Storage;
-	led = LED;
 	rtc = RTC;
 	sensors = Sensors;
 	receivers = Signals;
 	config = Config;
+	event = Event;
 	webhooks = Webhooks;
 }
 
@@ -502,6 +502,7 @@ bool Webserver::ServerStart() {
 
 	// Update firmware
 	server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		event->broadcastEvent(EventBroadcaster::Events::Updating);
 		// Let update start
 		delay(50);
 		
@@ -542,7 +543,7 @@ void Webserver::RebootChecker() {
 		if (shouldReboot) {
 			Serial.println("Rebooting...");
 			// Delay to show LED and let server send response
-			led->showColor(LEDIndicator::Colors::Purple);
+			event->broadcastEvent(EventBroadcaster::Events::Rebooting);
 			delay(3000);
 			ESP.restart();
 		}

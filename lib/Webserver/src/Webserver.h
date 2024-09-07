@@ -24,7 +24,7 @@
 #include <SignalManager.h>
 #include <WebhookManager.h>
 #include <HTTPClient.h>
-#include <LEDIndicator.h>
+#include <EventBroadcaster.h>
 #include <vector>
 
 /// @brief Local web server.
@@ -33,7 +33,7 @@ class Webserver {
 		/// @brief Used to signal that a reboot is requested or needed
 		bool shouldReboot = false;
 		
-		Webserver(AsyncWebServer* webserver, Storage* Storage, LEDIndicator* LED, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, WebhookManager* Webhooks);
+		Webserver(AsyncWebServer* webserver, Storage* Storage, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config,EventBroadcaster* Event, WebhookManager* Webhooks);
 		bool ServerStart();
 		void ServerStop();
 		static void RebootCheckerTaskWrapper(void* arg);
@@ -44,9 +44,6 @@ class Webserver {
 
 		/// @brief Pointer to the storage object
 		Storage* storage;
-
-		/// @brief Pointer to LEDIndicator object
-		LEDIndicator* led;
 
 		/// @brief RTC object for setting and getting time of device
         ESP32Time* rtc;
@@ -59,6 +56,9 @@ class Webserver {
 
 		/// @brief Configuration object for managing settings
 		Configuration* config;
+
+		/// @brief Event broadcaster object
+		EventBroadcaster* event;
 
 		/// @brief WebhooksManager object for managing webhooks
 		WebhookManager* webhooks;

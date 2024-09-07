@@ -11,16 +11,20 @@
 #pragma once
 #include <ESPAsyncWiFiManager.h>
 #include <ArduinoJson.h>
-#include <LEDIndicator.h>
+#include <EventBroadcaster.h>
 
 class WiFiConfig {
 	public:
-		WiFiConfig(AsyncWiFiManager* WiFiManager, LEDIndicator* LED, String SSID, String Password);
+		WiFiConfig(AsyncWiFiManager* WiFiManager, EventBroadcaster* Event, String SSID, String Password);
 		void connectWiFi();
 
 	private:
+		/// @brief WiFi manager object
 		AsyncWiFiManager* wifiManager;
-		LEDIndicator* led;
+
+		/// @brief Event broadcaster object
+		EventBroadcaster* event;
+		
 		String ssid;
 		String password;
 		void configModeCallback(AsyncWiFiManager *myWiFiManager);
