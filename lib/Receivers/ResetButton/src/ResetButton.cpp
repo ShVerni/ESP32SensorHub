@@ -109,7 +109,7 @@ void ResetButton::ResetChecker() {
 			reset();
 		}
 		// This loop doesn't need to be tight
-		delay(50);
+		vTaskDelay(50 / portTICK_PERIOD_MS);
 	}
 }
 

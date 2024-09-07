@@ -547,7 +547,7 @@ void Webserver::RebootChecker() {
 			ESP.restart();
 		}
 		// This loop doesn't need to be tight
-		delay(100);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
 

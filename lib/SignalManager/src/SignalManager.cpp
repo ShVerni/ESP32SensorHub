@@ -177,5 +177,6 @@ void SignalManager::processSignal() {
 			receivers[signal[0]]->receiveSignal(signal[1], payloads.front());
 			payloads.pop();
 		}
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
