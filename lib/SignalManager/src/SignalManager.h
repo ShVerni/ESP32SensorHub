@@ -13,7 +13,6 @@
 #include <vector>
 #include <queue>
 
-
 /// @brief Receives and processes signals for signal receivers
 class SignalManager {
 	private:

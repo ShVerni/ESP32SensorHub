@@ -2,8 +2,10 @@
 
 /// @brief Creates a reset button object
 /// @param Storage A storage object to use to store settings
-ResetButton::ResetButton(Storage* Storage) {
+/// @param Storage An event broadcaster object
+ResetButton::ResetButton(Storage* Storage, EventBroadcaster* Event) {
 	storage = Storage;
+	event = Event;
 }
 
 /// @brief Starts a reset button
@@ -120,6 +122,7 @@ void ResetButton::reset() {
 	WiFi.disconnect(true, true);
 	WiFi.persistent(false);
 	Serial.println("Rebooting...");
+	event->broadcastEvent(EventBroadcaster::Events::Rebooting);
 	delay(3000);
 	ESP.restart();		
 }

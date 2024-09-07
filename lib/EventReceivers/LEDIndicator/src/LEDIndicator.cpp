@@ -26,16 +26,18 @@ bool LEDIndicator::begin() {
 
 /// @brief Shows a color on the LED indicator, or blinks the LED
 /// @param color The color to show
-void LEDIndicator::showColor(Colors color) {
+/// @return True on success
+bool LEDIndicator::receiveEvent(int event) {
 	if (rgb) {
-		leds.fill(color_map[(int)color]);
+		leds.fill(color_map[(int)event]);
 		leds.show();
 	} else {
-		for (int i = 0; i < (int)color; i++) {
+		for (int i = 0; i < (int)event; i++) {
 			digitalWrite(led_pin, HIGH);
 			delay (250);
 			digitalWrite(led_pin, LOW);
 			delay (250);
 		}
 	}
+	return true;
 }

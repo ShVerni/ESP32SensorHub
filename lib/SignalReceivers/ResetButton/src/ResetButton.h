@@ -11,6 +11,7 @@
 #include <WiFi.h>
 #include <SignalReceiver.h>
 #include <Storage.h>
+#include <EventBroadcaster.h>
 #include <ArduinoJson.h>
 
 /// @brief Provides a button to reset WiFi settings
@@ -38,6 +39,9 @@ class ResetButton : public SignalReceiver {
 
 		/// @brief When true will reset the WiFi and reboot
 		bool shouldReset = false;
+
+		/// @brief Event broadcaster object
+		EventBroadcaster* event;
 		
 		bool saveConfig();
 		void reset();
@@ -45,7 +49,7 @@ class ResetButton : public SignalReceiver {
 		static void ResetCheckerTaskWrapper(void* arg);
 
 	public:
-		ResetButton(Storage* Storage);
+		ResetButton(Storage* Storage, EventBroadcaster* Event);
 		bool begin();
 		String receiveSignal(int signal, String payload = "");
 		String getConfig();
