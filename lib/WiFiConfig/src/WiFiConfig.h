@@ -15,15 +15,12 @@
 
 class WiFiConfig {
 	public:
-		WiFiConfig(AsyncWiFiManager* WiFiManager, EventBroadcaster* Event, String SSID, String Password);
+		WiFiConfig(AsyncWiFiManager* WiFiManager, String SSID, String Password);
 		void connectWiFi();
 
 	private:
 		/// @brief WiFi manager object
 		AsyncWiFiManager* wifiManager;
-
-		/// @brief Event broadcaster object
-		EventBroadcaster* event;
 		
 		String ssid;
 		String password;

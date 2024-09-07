@@ -1,21 +1,29 @@
 #include "WebhookManager.h"
 
-/// @brief Creates a new webhook manager
+// Initialize static variables
+std::vector<WebhookManager::Webhook_info> WebhookManager::webhooks;
+String WebhookManager::config;
+
+/// @brief Starts the webhook manager
 /// @param configFile Name of config file
-WebhookManager::WebhookManager(Storage* Storage, String configFile) {
-	storage = Storage;
+bool WebhookManager::begin(String configFile) {
 	config = "/settings/" + configFile;
+	return true;
 }
 
 /// @brief Loads webhooks from config file
-/// @return True on success
+/// @return True on success or if nothing has been configured yet
 bool WebhookManager::loadWebhooks() {
-	String json_string = storage->readFile(config);
-	if (json_string == "") {
-		Serial.println("Could not load webhook config file, or it doesn't exist");
-		return false;
+	if (Storage::fileExists(config)) {
+		// Attempt to load and read config file
+		String json_string = Storage::readFile(config);
+		if (json_string == "") {
+			Serial.println("Could not load webhook config file");
+			return false;
+		}
+		return updateWebhooks(json_string);
 	}
-	return updateWebhooks(json_string);
+	return true;	
 }
 
 /// @brief Updates current in-use webhooks
@@ -62,7 +70,7 @@ bool WebhookManager::saveWebhooks() {
 /// @param hooks A complete and properly formatted JSON string of all the webhooks
 /// @return True on success
 bool WebhookManager::saveWebhooks(String hooks) { 
-	if(!storage->writeFile(config, hooks)) {
+	if(!Storage::writeFile(config, hooks)) {
 		Serial.println("Could not write webhooks config file");
 		return false;
 	}

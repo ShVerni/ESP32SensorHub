@@ -37,29 +37,11 @@ extern const String FW_VERSION = "0.5.0";
 /// @brief Stores settings in NVS
 Preferences settings;
 
-/// @brief Event broadcaster
-EventBroadcaster event;
-
-/// @brief Storage object
-Storage storage;
-
-/// @brief Configuration object for storing full config
-Configuration config(&storage);
-
 /// @brief RTC object for getting/setting time
 ESP32Time rtc;
 
 /// @brief AsyncWebServer object (passed to WfiFiConfig and WebServer)
 AsyncWebServer server(80);
-
-/// @brief Sensor manager object
-SensorManager sensors;
-
-/// @brief Signal manager object
-SignalManager receivers;
-
-/// @brief Webhooks manager object
-WebhookManager webhooks(&storage, "webhooks.json");
 
 /******** Declare sensor and receiver objects here ********/
 
@@ -67,7 +49,7 @@ WebhookManager webhooks(&storage, "webhooks.json");
 LEDIndicator led(D8, 1);
 
 /// @brief Reset button object
-ResetButton reset_button(&storage, &event);
+ResetButton reset_button;
 
 /******** End sensor and receiver object declaration ********/
 
@@ -82,64 +64,50 @@ void setup() {
 
 	/******** Add event receivers and loggers here ********/
 
-	event.addReceiver(&led);
+	EventBroadcaster::addReceiver(&led);
 
 	/******** End event receivers and loggers addition section ********/
 
-	if (!event.beginReceivers())	{
+	if (!EventBroadcaster::beginReceivers())	{
 		Serial.println("Could not start all event receivers");
 		while(true);
 	}
 
 	// Show yellow during startup
-	event.broadcastEvent(EventBroadcaster::Events::Starting);
+	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Starting);
 
 	// Start preference storage on NVS
 	if (!settings.begin("sensor-hub", false)) {
-		event.broadcastEvent(EventBroadcaster::Events::Error);
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
 		Serial.println("Count not start NVS settings");
 		while(true);
 	};
 
 	// Start storage
-	if (!storage.begin()) {
-		event.broadcastEvent(EventBroadcaster::Events::Error);
+	if (!Storage::begin()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
 		Serial.println("Could not start storage");
 		while(true);
 	}
-
-	// Start configuration manager
-	if (!config.begin()) {
-		event.broadcastEvent(EventBroadcaster::Events::Error);
-		Serial.println("Could not start configuration manager");
-		while(true);
-	}
-
-	// TEMPORARY: Create dummy config here until web interface is built
-	config.currentConfig.enabled = true;
-	config.saveConfig();
-
-	// Load saved configuration if there is one
-	config.loadConfig();
 
 	#ifdef WIFI_CLIENT
 		// Configure WiFi client
 		DNSServer dns;
 		AsyncWiFiManager manager(&server, &dns);
-		WiFiConfig configurator(&manager, &event, config.currentConfig.configSSID, config.currentConfig.configPW);
+		WiFiConfig configurator(&manager, Configuration::currentConfig.configSSID, Configuration::currentConfig.configPW);
 		configurator.connectWiFi();
 		WiFi.setAutoReconnect(true);
 		server.reset();
 		// Set local time via NTP
-		configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
+		configTime(Configuration::currentConfig.gmtOffset_sec, Configuration::currentConfig.daylightOffset_sec, Configuration::currentConfig.ntpServer.c_str());
 		Serial.println("Time set via NTP");
 	#else
 		// Start AP
-		WiFi.softAP(config.currentConfig.configSSID, config.currentConfig.configPW);
+		WiFi.softAP(Configuration::currentConfig.configSSID, Configuration::currentConfig.configPW);
 	#endif
 	
 	/// @brief Webserver handling all requests
-	Webserver webserver(&server, &storage, &rtc, &sensors, &receivers, &config, &event, &webhooks);
+	Webserver webserver(&server, &rtc);
 
 	// Clear server settings, just in case
 	webserver.ServerStop();
@@ -148,36 +116,65 @@ void setup() {
 	webserver.ServerStart();
 	xTaskCreate(Webserver::RebootCheckerTaskWrapper, "Reboot Checker Loop", 1024, &webserver, 1, NULL);
 
+	// Start configuration manager
+	if (!Configuration::begin()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		Serial.println("Could not start configuration manager");
+		while(true);
+	}
+
+	// TEMPORARY: Create dummy config here until web interface is built
+	Configuration::currentConfig.enabled = true;
+	Configuration::saveConfig();
+
+	// Load saved configuration if there is one
+	if (!Configuration::loadConfig()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		Serial.println("Could not load configuration");
+		while(true);
+	}
+
+	/// Start webhooks
+	if (!WebhookManager::begin("webhooks.json")) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		Serial.println("Could not start webhook manager");
+		while(true);
+	}
+
 	/******** Add sensors and receivers here ********/
 
-	receivers.addReceiver(&reset_button);
+	SignalManager::addReceiver(&reset_button);
 
 	/******** End sensor and receiver addition section ********/
 
 	// Start sensors
-	if (!sensors.beginSensors()) {
-		event.broadcastEvent(EventBroadcaster::Events::Error);
+	if (!SensorManager::beginSensors()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
 		while(true);
 	}
 
 	// Start receivers
-	if (!receivers.beginReceivers()) {
-		event.broadcastEvent(EventBroadcaster::Events::Error);
+	if (!SignalManager::beginReceivers()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		while(true);
+	}
+
+	// Load saved webhooks if any
+	if (!WebhookManager::loadWebhooks()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		Serial.println("Could not load webhooks");
 		while(true);
 	}
 
 	// Print the configured sensors and receivers
-	Serial.println(sensors.getSensorInfo());
-	Serial.println(receivers.getReceiverInfo());
-
-	// Load webhooks, if any
-	webhooks.loadWebhooks();
+	Serial.println(SensorManager::getSensorInfo());
+	Serial.println(SignalManager::getReceiverInfo());
 
 	// Start signal processor loop (8K of stack depth is probably overkill, but it does process potentially large JSON strings and we have the RAM, so better to be safe)
-	xTaskCreate(SignalManager::SignalProcessorTaskWrapper, "Command Processor Loop", 8192, &receivers, 1, NULL);
+	xTaskCreate(SignalManager::signalProcessor, "Command Processor Loop", 8192, NULL, 1, NULL);
 
 	// Ready!
-	event.broadcastEvent(EventBroadcaster::Events::Ready);
+	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Ready);
 	Serial.println("System ready!");
 }
 
@@ -195,16 +192,16 @@ void loop() {
 	#ifdef WIFI_CLIENT
 		// Synchronize the time every 6 hours
 		if (current_mills - previous_millis_ntp > 21600000) {
-			configTime(config.currentConfig.gmtOffset_sec, config.currentConfig.daylightOffset_sec, config.currentConfig.ntpServer.c_str());
+			configTime(Configuration::currentConfig.gmtOffset_sec, Configuration::currentConfig.daylightOffset_sec, Configuration::currentConfig.ntpServer.c_str());
 			previous_millis_ntp = current_mills;
 		}
 	#endif
-	if (config.currentConfig.enabled) {
+	if (Configuration::currentConfig.enabled) {
 		// Perform actions periodically
-		if (current_mills - previous_mills_measure > config.currentConfig.period) {
-			if (sensors.takeMeasurement()) {
+		if (current_mills - previous_mills_measure > Configuration::currentConfig.period) {
+			if (SensorManager::takeMeasurement()) {
 				// Do something with measurements
-				for (const auto &m : sensors.measurements) {
+				for (const auto &m : SensorManager::measurements) {
 					Serial.println(m.parameter + ": " + m.value + " " + m.unit);
 				}
 			} else {

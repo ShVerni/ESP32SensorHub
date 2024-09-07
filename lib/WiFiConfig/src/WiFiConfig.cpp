@@ -2,13 +2,11 @@
 
 /// @brief Connects to a saved WiFi network, or configures WiFi.
 /// @param WiFiManager Pointer to the WifManager object to use
-/// @param Event Pointer to the EventBroadcaster object to use
 /// @param SSID SSID of setup WiFi network
 /// @param Password Password of setup WiFi network
-WiFiConfig::WiFiConfig (AsyncWiFiManager* WiFiManager, EventBroadcaster* Event, String SSID, String Password) {
+WiFiConfig::WiFiConfig (AsyncWiFiManager* WiFiManager, String SSID, String Password) {
 	wifiManager = WiFiManager;
 	ssid = SSID;
-	event = Event;
 	password = Password;
 }
 
@@ -16,7 +14,7 @@ WiFiConfig::WiFiConfig (AsyncWiFiManager* WiFiManager, EventBroadcaster* Event, 
 /// @param myWiFiManager the AsyncWiFiManager making the call
 void WiFiConfig::configModeCallback(AsyncWiFiManager *myWiFiManager)
 {
-	event->broadcastEvent(EventBroadcaster::Events::WifiConfig);
+	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::WifiConfig);
 	Serial.println("Access point started");
 }
 

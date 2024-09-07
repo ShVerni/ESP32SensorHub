@@ -17,7 +17,7 @@
 /// @brief Manages all available webhooks
 class WebhookManager {
 	private:
-	typedef struct Webhook_info {
+		typedef struct Webhook_info {
 			/// @brief Ths positional ID of the webhook (where it's located in the vector)
 			int positionID;
 
@@ -26,26 +26,23 @@ class WebhookManager {
 		} Webhook_info;
 
 		/// @brief Stores all the in-use webhooks
-		std::vector<Webhook_info> webhooks;
+		static std::vector<Webhook_info> webhooks;
 
 		/// @brief Full path to config file
-		String config;
-
-		/// @brief Pointer to the storage object to use
-		Storage* storage;
+		static String config;
 		
-		String hooksToJSON();
+		static String hooksToJSON();
 
 	public:
-		WebhookManager(Storage* Storage, String configFile);
-		bool loadWebhooks();
-		bool saveWebhooks();
-		bool saveWebhooks(String hooks);
-		bool updateWebhooks(String hooks);
-		String getWebhooks();
-		String fireGet(int positionID);
-		String fireGet(int positionID, String parameters);
-		String fireGet(int positionID, std::map<String,String> parameters);
-		String firePost(int positionID, String parameters);
-		String firePost(int positionID, std::map<String,String> parameters);
+		static bool begin(String configFile);
+		static bool loadWebhooks();
+		static bool saveWebhooks();
+		static bool saveWebhooks(String hooks);
+		static bool updateWebhooks(String hooks);
+		static String getWebhooks();
+		static String fireGet(int positionID);
+		static String fireGet(int positionID, String parameters);
+		static String fireGet(int positionID, std::map<String,String> parameters);
+		static String firePost(int positionID, String parameters);
+		static String firePost(int positionID, std::map<String,String> parameters);
 };

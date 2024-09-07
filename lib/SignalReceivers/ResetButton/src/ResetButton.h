@@ -17,8 +17,6 @@
 /// @brief Provides a button to reset WiFi settings
 class ResetButton : public SignalReceiver {
 	private:
-		Storage* storage;
-
 		/// @brief Describes available pin states
 		enum modes { NONE = 0x1, BUTTON_PULLUP = 0x5, BUTTON_PULLDOWN = 0x9 };
 
@@ -49,7 +47,6 @@ class ResetButton : public SignalReceiver {
 		static void ResetCheckerTaskWrapper(void* arg);
 
 	public:
-		ResetButton(Storage* Storage, EventBroadcaster* Event);
 		bool begin();
 		String receiveSignal(int signal, String payload = "");
 		String getConfig();

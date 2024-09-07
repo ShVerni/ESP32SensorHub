@@ -15,7 +15,7 @@
 class SensorManager {
 	private:
 		/// @brief Collects all the senors that are in use
-		std::vector<Sensor*> sensors;
+		static std::vector<Sensor*> sensors;
 
 		/// @brief Describes all info associated with a measurement
 		struct measurement {
@@ -31,14 +31,14 @@ class SensorManager {
 
 	public:
 		/// @brief Contains the most recently requested measurements
-		std::vector<measurement> measurements;
+		static std::vector<measurement> measurements;
 
-		bool addSensor(Sensor* sensor);
-		bool beginSensors();
-		bool takeMeasurement();
-		String getLastMeasurement();
-		String getSensorInfo();
-		String getSensorConfig(int sensorPosID);
-		bool setSensorConfig(int sensorPosID, String config);
-		std::tuple<Sensor::calibration_response, String> calibrateSensor(int sensorPosID, int step);
+		static bool addSensor(Sensor* sensor);
+		static bool beginSensors();
+		static bool takeMeasurement();
+		static String getLastMeasurement();
+		static String getSensorInfo();
+		static String getSensorConfig(int sensorPosID);
+		static bool setSensorConfig(int sensorPosID, String config);
+		static std::tuple<Sensor::calibration_response, String> calibrateSensor(int sensorPosID, int step);
 };

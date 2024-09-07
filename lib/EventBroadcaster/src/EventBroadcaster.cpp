@@ -1,9 +1,12 @@
 #include "EventBroadcaster.h"
 
+// Initialize static variables
+std::vector<EventReceiver*> EventBroadcaster::receivers;
+
 /// @brief Begins on the subscribed receivers
 /// @return True on success
 bool EventBroadcaster::beginReceivers() {
-	for (const auto& r : receivers) {
+	for (const auto& r : EventBroadcaster::receivers) {
 		if (!r->begin()) {
 			return false;
 		}
@@ -15,7 +18,7 @@ bool EventBroadcaster::beginReceivers() {
 /// @param event The event to broadcast
 /// @return True on success
 bool EventBroadcaster::broadcastEvent(Events event) {
-	for (const auto& r : receivers) {
+	for (const auto& r : EventBroadcaster::receivers) {
 		if (!r->receiveEvent((int)event)) {
 			return false;
 		}
@@ -27,6 +30,6 @@ bool EventBroadcaster::broadcastEvent(Events event) {
 /// @param receiver A pointer to the receiver
 /// @return True on success
 bool EventBroadcaster::addReceiver(EventReceiver* receiver) {
-	receivers.push_back(receiver);
+	EventBroadcaster::receivers.push_back(receiver);
 	return true; // Currently no way to fail this
 }

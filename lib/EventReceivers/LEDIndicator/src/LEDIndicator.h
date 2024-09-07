@@ -32,7 +32,7 @@ class LEDIndicator : public EventReceiver {
 		int color_map[8] = {
 		0x000000,     // Off    (0 blinks)
 		0xFF6000,     // Yellow (1 blinks)
-		0x00C4FF,     // Cyan	(2 blinks)
+		0x00B0FF,     // Cyan	(2 blinks)
 		0xFF2800,     // Orange (3 blinks)
 		0xFF00C4,     // Purple (4 blinks)
 		0x007F00,     // Green  (5 blinks)

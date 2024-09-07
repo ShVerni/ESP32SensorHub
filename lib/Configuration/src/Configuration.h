@@ -13,9 +13,12 @@
 
 /// @brief Holds and manages the hub configuration
 class Configuration {
+	private:
+		/// @brief Path to file used to store/load settings
+		static String file;
 
-	public:
-		struct {
+		/// @brief Defines the configuration 
+		typedef struct config {
 			/// @brief Controls whether the sensor hub is enabled
 			bool enabled = false;
 			
@@ -36,23 +39,19 @@ class Configuration {
 
 			/// @brief Password for configuration interface
 			String configPW = "ESP32Sensor";
-		} currentConfig;
+		} config;
 
-		Configuration(Storage* Storage, String File = "config.json");
-		bool begin();
-		bool loadConfig();
-		bool updateConfig(String config);
-		bool saveConfig();
-		bool saveConfig(String config);
-		String getConfig();
+		static String configToJSON();
 
-	private:
-		/// @brief Pointer to the storage object to use
-		Storage* storage;
+	public:
+		/// @brief The currently used configuration
+		static config currentConfig;
 
-		/// @brief Path to file to use to store/load settings
-		String file;
-
-		String configToJSON();
+		static bool begin(String File = "config.json");
+		static bool loadConfig();
+		static bool updateConfig(String config);
+		static bool saveConfig();
+		static bool saveConfig(String config);
+		static String getConfig();
 
 };

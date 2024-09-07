@@ -1,13 +1,5 @@
 #include "ResetButton.h"
 
-/// @brief Creates a reset button object
-/// @param Storage A storage object to use to store settings
-/// @param Storage An event broadcaster object
-ResetButton::ResetButton(Storage* Storage, EventBroadcaster* Event) {
-	storage = Storage;
-	event = Event;
-}
-
 /// @brief Starts a reset button
 /// @return True on success
 bool ResetButton::begin() {
@@ -18,24 +10,24 @@ bool ResetButton::begin() {
 	Description.signals = {{"Reset", 0}};
 	Description.id = 0;
 	// Create settings directory if necessary
-	if (!storage->fileExists("/settings/sig")) {
-		if (!storage->fileExists("/settings")) {
-			if (!storage->createDir("/settings")) {
+	if (!Storage::fileExists("/settings/sig")) {
+		if (!Storage::fileExists("/settings")) {
+			if (!Storage::createDir("/settings")) {
 				return false;
 			}
 		}
-		if (!storage->createDir("/settings/sig")) {
+		if (!Storage::createDir("/settings/sig")) {
 				return false;
 		}
 	}
 	// Load settings
 	bool result = false;
-	if (!storage->fileExists("/settings/sig/ResetButton.json")) {
+	if (!Storage::fileExists("/settings/sig/ResetButton.json")) {
 		// Set defaults
 		current_config = { .pin = D4, .mode = modes::BUTTON_PULLUP, .active = states::BUTTON_LOW };
 		result = saveConfig();
 	} else {
-		result = setConfig(storage->readFile("/settings/sig/ResetButton.json"));
+		result = setConfig(Storage::readFile("/settings/sig/ResetButton.json"));
 	}
 	// Config button pin
 	if (result) {
@@ -95,7 +87,7 @@ bool ResetButton::setConfig(String config) {
 /// @brief Saves the current config to a JSON file
 /// @return True on success
 bool ResetButton::saveConfig() {
-	return storage->writeFile("/settings/sig/ResetButton.json", getConfig());
+	return Storage::writeFile("/settings/sig/ResetButton.json", getConfig());
 }
 
 /// @brief Wraps the reset checker task for static access
@@ -122,7 +114,7 @@ void ResetButton::reset() {
 	WiFi.disconnect(true, true);
 	WiFi.persistent(false);
 	Serial.println("Rebooting...");
-	event->broadcastEvent(EventBroadcaster::Events::Rebooting);
+	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
 	delay(3000);
 	ESP.restart();		
 }

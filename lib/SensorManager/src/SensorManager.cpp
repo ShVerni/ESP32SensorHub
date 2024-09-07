@@ -1,5 +1,9 @@
 #include "SensorManager.h"
 
+// Initialize static variables
+std::vector<Sensor*> SensorManager::sensors;
+std::vector<SensorManager::measurement> SensorManager::measurements;
+
 /// @brief Adds a sensor to the in-use sensors collection
 /// @param sensor A pointer to the sensor to add
 /// @return True on success

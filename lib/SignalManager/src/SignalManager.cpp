@@ -1,10 +1,9 @@
 #include "SignalManager.h"
 
-/// @brief Creates a SignalManager object
-SignalManager::SignalManager() {
-	// Create the signal queue
-	signalQueue = xQueueCreate(15, sizeof(int[2]));
-}
+// Initialize static variables
+std::vector<SignalReceiver*> SignalManager::receivers;
+QueueHandle_t SignalManager::signalQueue = xQueueCreate(15, sizeof(int[2]));
+std::queue<String> SignalManager::payloads;
 
 /// @brief Adds a signal receiver to the in-use list
 /// @param receiver A pointer to the receiver to add
@@ -28,7 +27,6 @@ bool SignalManager::beginReceivers() {
 	}
 	return true;
 }
-
 
 /// @brief Adds a signal to the queue for processing
 /// @param receiverPosID The position ID of the signal receiver
@@ -163,14 +161,9 @@ String SignalManager::processSignalImmediately(int receiverPosID, int signal, St
 }
 
 /// @brief Wraps the signal processor task for static access
-/// @param signalManager Pointer to the SignalManger object
-void SignalManager::SignalProcessorTaskWrapper(void* signalManager) {
-	static_cast<SignalManager*>(signalManager)->processSignal();
-}
-
-/// @brief Processes signals from queue
-void SignalManager::processSignal() {
-	int signal[2];
+/// @param arg Not used
+void SignalManager::signalProcessor(void* arg) {
+		int signal[2];
 	while(true) {
 		if (xQueueReceive(signalQueue, &signal, 10) == pdTRUE)
 		{

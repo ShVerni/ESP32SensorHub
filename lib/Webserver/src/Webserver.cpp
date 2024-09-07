@@ -12,22 +12,10 @@ int Webserver::upload_response_code = 201;
 
 /// @brief Creates a Webserver object
 /// @param Webserver A pointer to an AsyncWebServer object
-/// @param Storage A pointer to a storage object
 /// @param RTC A pointer to a ESP32Time object
-/// @param Sensors A pointer to a SensorManager object
-/// @param Sensors A pointer to a SignalManager object
-/// @param Config A pointer to a Configuration object
-/// @param Event A pointer to an EventBroadcaster object
-/// @param Webhooks A pointer to a WebhooksManager object
-Webserver::Webserver(AsyncWebServer* Webserver, Storage* Storage, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config, EventBroadcaster* Event, WebhookManager* Webhooks) {
+Webserver::Webserver(AsyncWebServer* Webserver, ESP32Time* RTC) {
 	server = Webserver;
-	storage = Storage;
 	rtc = RTC;
-	sensors = Sensors;
-	receivers = Signals;
-	config = Config;
-	event = Event;
-	webhooks = Webhooks;
 }
 
 /// @brief Starts the update server
@@ -35,12 +23,12 @@ bool Webserver::ServerStart() {
 	Serial.println("Starting web server");
 
 	// Create root directory if needed
-	if (!storage->fileExists("/www"))
-		if (!storage->createDir("/www"))
+	if (!Storage::fileExists("/www"))
+		if (!Storage::createDir("/www"))
 			return false;
 
 	// Add request handler for index page
-	if (storage->fileExists("/www/index.html")) {
+	if (Storage::fileExists("/www/index.html")) {
 		// Serve any page from filesystem
 		server->serveStatic("/", *Storage::getFileSystem(), "/www/").setDefaultFile("index.html");
 	} else {
@@ -65,8 +53,8 @@ bool Webserver::ServerStart() {
 		if(request->hasParam("path", true)) {
 			String path = request->getParam("path", true)->value();
 			Serial.println("Deleting " + path);
-			if (storage->fileExists(path)) {
-				bool success = storage->deleteFile(path);
+			if (Storage::fileExists(path)) {
+				bool success = Storage::deleteFile(path);
 				request->send(HTTP_CODE_OK, "text/plain", success ? "OK" : "FAIL");
 			} else {
 				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "File doesn't exist");
@@ -78,29 +66,29 @@ bool Webserver::ServerStart() {
 
 	// Get descriptions of available sensors
 	server->on("/getSensorInfo", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		request->send(HTTP_CODE_OK, "text/json", sensors->getSensorInfo());
+		request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorInfo());
 	});
 
 	// Get descriptions of available signal receivers
 	server->on("/getReceiverInfo", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		request->send(HTTP_CODE_OK, "text/json", receivers->getReceiverInfo());
+		request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverInfo());
 	});
 
 	// Gets last measurement. Add GET paramater "update" (/getMeasurement?update) to take a new measurement first
 	server->on("/getMeasurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("update")) {
 			// Attempt to take new measurement
-			if (!sensors->takeMeasurement()) {
+			if (!SensorManager::takeMeasurement()) {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
 				return;
 			}
 		}
-		request->send(HTTP_CODE_OK, "text/json", sensors->getLastMeasurement());
+		request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
 	});
 
 	// Get curent global configuration
 	server->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		request->send(HTTP_CODE_OK, "text/json", config->getConfig());
+		request->send(HTTP_CODE_OK, "text/json", Configuration::getConfig());
 	});
 
 	// Update global configuration
@@ -110,10 +98,10 @@ bool Webserver::ServerStart() {
 			bool save = request->getParam("save", true)->value() == "1";
 			String config_string = request->getParam("config", true)->value();
 			// Attempt to apply config data
-			if (config->updateConfig(config_string)) {
+			if (Configuration::updateConfig(config_string)) {
 				if (save) {
 					// Attempt to save config
-					if(!config->saveConfig(config_string)) {
+					if(!Configuration::saveConfig(config_string)) {
 						request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not save config settings");
 						return;
 					}
@@ -131,19 +119,19 @@ bool Webserver::ServerStart() {
 	server->on("/getMeasurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("update")) {
 			// Attempt to take new measurement
-			if (!sensors->takeMeasurement()) {
+			if (!SensorManager::takeMeasurement()) {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
 				return;
 			}
 		}
-		request->send(HTTP_CODE_OK, "text/json", sensors->getLastMeasurement());
+		request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
 	});
 
 	// Get curent configuration of a sensor
 	server->on("/config/sensor", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("sensor")) {
 			int sensorPosID = request->getParam("sensor")->value().toInt();
-			request->send(HTTP_CODE_OK, "text/json", sensors->getSensorConfig(sensorPosID));
+			request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorConfig(sensorPosID));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -156,7 +144,7 @@ bool Webserver::ServerStart() {
 			int sensorPosID = request->getParam("sensor", true)->value().toInt();
 			String config = request->getParam("config", true)->value();
 			// Attempt to apply config data
-			if (sensors->setSensorConfig(sensorPosID, config)) {
+			if (SensorManager::setSensorConfig(sensorPosID, config)) {
 				request->send(HTTP_CODE_OK, "text/plain", "OK");
 			} else {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
@@ -170,7 +158,7 @@ bool Webserver::ServerStart() {
 	server->on("/config/receiver", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("receiver")) {
 			int receiverPosID = request->getParam("sensor")->value().toInt();
-			request->send(HTTP_CODE_OK, "text/json", receivers->getReceiverConfig(receiverPosID));
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverConfig(receiverPosID));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -183,7 +171,7 @@ bool Webserver::ServerStart() {
 			int receiverPosID = request->getParam("receiver", true)->value().toInt();
 			String config = request->getParam("config", true)->value();
 			// Attempt to apply config data
-			if (receivers->setReceiverConfig(receiverPosID, config)) {
+			if (SignalManager::setReceiverConfig(receiverPosID, config)) {
 				request->send(HTTP_CODE_OK, "text/plain", "OK");
 			} else {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
@@ -204,7 +192,7 @@ bool Webserver::ServerStart() {
 				payload = request->getParam("payload", true)->value();
 			}
 			// Attempt to add signal to queue
-			if (!receivers->addSignalToQueue(receiverPosID, signalName, payload)) {
+			if (!SignalManager::addSignalToQueue(receiverPosID, signalName, payload)) {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
 			}
 			request->send(HTTP_CODE_OK, "text/plain", "OK");
@@ -223,7 +211,7 @@ bool Webserver::ServerStart() {
 				payload = request->getParam("payload", true)->value();
 			}
 			// Attempt to add signal to queue
-			if (!receivers->addSignalToQueue(receiverPosID, signalID, payload)) {
+			if (!SignalManager::addSignalToQueue(receiverPosID, signalID, payload)) {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
 			}
 			request->send(HTTP_CODE_OK, "text/plain", "OK");
@@ -242,7 +230,7 @@ bool Webserver::ServerStart() {
 				payload = request->getParam("payload", true)->value();
 			}
 			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", receivers->processSignalImmediately(receiverPosID, signalName, payload));
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalName, payload));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -258,7 +246,7 @@ bool Webserver::ServerStart() {
 				payload = request->getParam("payload", true)->value();
 			}
 			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", receivers->processSignalImmediately(receiverPosID, signalID, payload));
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalID, payload));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -272,7 +260,7 @@ bool Webserver::ServerStart() {
 			int step = request->getParam("step", true)->value().toInt();
 
 			// Run sensor calibration
-			std::tuple<Sensor::calibration_response, String> response = sensors->calibrateSensor(sensorPosID, step);
+			std::tuple<Sensor::calibration_response, String> response = SensorManager::calibrateSensor(sensorPosID, step);
 
 			// Create response
 			request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
@@ -283,7 +271,7 @@ bool Webserver::ServerStart() {
 
 	// Get curent webhooks
 	server->on("/webhooks", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		request->send(HTTP_CODE_OK, "text/json", webhooks->getWebhooks());
+		request->send(HTTP_CODE_OK, "text/json", WebhookManager::getWebhooks());
 	});
 
 	// Update webhooks
@@ -293,10 +281,10 @@ bool Webserver::ServerStart() {
 			bool save = request->getParam("save", true)->value() == "1";
 			String webhooks_string = request->getParam("webhooks", true)->value();
 			// Attempt to apply config data
-			if (webhooks->updateWebhooks(webhooks_string)) {
+			if (WebhookManager::updateWebhooks(webhooks_string)) {
 				if (save) {
 					// Attempt to save config
-					if(!webhooks->saveWebhooks(webhooks_string)) {
+					if(!WebhookManager::saveWebhooks(webhooks_string)) {
 						request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not save webhook settings");
 						return;
 					}
@@ -319,7 +307,7 @@ bool Webserver::ServerStart() {
 			if (request->hasParam("parameters", true)) {
 				String parameters = request->getParam("parameters", true)->value();
 				if (type == "json") {
-					request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, parameters));
+					request->send(HTTP_CODE_OK, "text/json", WebhookManager::fireGet(webhookPosID, parameters));
 				} else {
 					// Convert from JSON to std::map<String, String>
 					// Allocate the JSON document
@@ -338,11 +326,11 @@ bool Webserver::ServerStart() {
 					for (JsonPair param : doc.as<JsonObject>()) {
 						params[param.key().c_str()] = param.value().as<String>();
 					}
-					request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, params));
+					request->send(HTTP_CODE_OK, "text/json", WebhookManager::fireGet(webhookPosID, params));
 				}
 
 			} else {
-				request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID));
+				request->send(HTTP_CODE_OK, "text/json", WebhookManager::fireGet(webhookPosID));
 			}
 			
 		} else {
@@ -358,7 +346,7 @@ bool Webserver::ServerStart() {
 			type.toLowerCase();
 			String parameters = request->getParam("parameters", true)->value();
 			if (type == "json") {
-				request->send(HTTP_CODE_OK, "text/json", webhooks->fireGet(webhookPosID, parameters));
+				request->send(HTTP_CODE_OK, "text/json", WebhookManager::fireGet(webhookPosID, parameters));
 			} else {
 				// Convert from JSON to std::map<String, String>
 				// Allocate the JSON document
@@ -377,7 +365,7 @@ bool Webserver::ServerStart() {
 				for (JsonPair param : doc.as<JsonObject>()) {
 					params[param.key().c_str()] = param.value().as<String>();
 				}
-				request->send(HTTP_CODE_OK, "text/json", webhooks->firePost(webhookPosID, params));
+				request->send(HTTP_CODE_OK, "text/json", WebhookManager::firePost(webhookPosID, params));
 			}			
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
@@ -422,14 +410,14 @@ bool Webserver::ServerStart() {
 
 	// Handle request for the amount of free space on the storage device (example of returning JSON data)
 	server->on("/freeSpace", HTTP_GET, [this](AsyncWebServerRequest *request) {	
-		String result = "{ \"space\": " + String(storage->freeSpace()) + " }";
+		String result = "{ \"space\": " + String(Storage::freeSpace()) + " }";
 		request->send(HTTP_CODE_OK, "text/json", result);
 	});
 
 	// Handle reset request
 	server->on("/reset", HTTP_PUT, [this](AsyncWebServerRequest *request) {
 		Serial.println("Resetting WiFi settings");
-		 if (storage->fileExists("/www/reset.html")) {
+		 if (Storage::fileExists("/www/reset.html")) {
 			request->send(*Storage::getFileSystem(), "/www/reset.html", "text/html");
 		} else {
 			request->send(HTTP_CODE_OK, "text/plain", "OK");
@@ -443,7 +431,7 @@ bool Webserver::ServerStart() {
 
 	// Handle reboot request
 	server->on("/reboot", HTTP_PUT, [this](AsyncWebServerRequest *request) {
-		if (storage->fileExists("/www/reboot.html")) {
+		if (Storage::fileExists("/www/reboot.html")) {
 			request->send(*Storage::getFileSystem(), "/www/reboot.html", "text/html");
 		} else {
 			request->send(HTTP_CODE_OK, "text/plain", "OK");
@@ -455,12 +443,12 @@ bool Webserver::ServerStart() {
 	server->on("/list", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("path")) {
 			String path = request->getParam("path")->value();
-			if (storage->fileExists(path)) {
+			if (Storage::fileExists(path)) {
 				int depth = 0;
 				if (request->hasParam("depth")) {
 					depth = request->getParam("depth")->value().toInt();
 				}
-				std::vector<String> file_list = storage->listDir(path, depth);
+				std::vector<String> file_list = Storage::listDir(path, depth);
 				JsonDocument files;
 				for (int i = 0; i < file_list.size(); i++) {
 					files["files"][i] = file_list[i];
@@ -480,7 +468,7 @@ bool Webserver::ServerStart() {
 	server->on("/download", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("path")) {
 			String path = request->getParam("path")->value();
-			if (storage->fileExists(path)) {
+			if (Storage::fileExists(path)) {
 				request->send(*Storage::getFileSystem(), path, "application/octet-stream");
 			} else {
 				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "File doesn't exist");
@@ -502,7 +490,6 @@ bool Webserver::ServerStart() {
 
 	// Update firmware
 	server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		event->broadcastEvent(EventBroadcaster::Events::Updating);
 		// Let update start
 		delay(50);
 		
@@ -543,7 +530,7 @@ void Webserver::RebootChecker() {
 		if (shouldReboot) {
 			Serial.println("Rebooting...");
 			// Delay to show LED and let server send response
-			event->broadcastEvent(EventBroadcaster::Events::Rebooting);
+			EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
 			delay(3000);
 			ESP.restart();
 		}
@@ -605,6 +592,7 @@ void Webserver::onUpdate(AsyncWebServerRequest *request, String filename, size_t
 	if (!index)
 	{
 		Serial.printf("Update Start: %s\n", filename.c_str());
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Updating);
 		// Ensure firmware will fit into flash space
 		if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000))
 		{

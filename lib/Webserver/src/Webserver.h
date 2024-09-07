@@ -33,7 +33,7 @@ class Webserver {
 		/// @brief Used to signal that a reboot is requested or needed
 		bool shouldReboot = false;
 		
-		Webserver(AsyncWebServer* webserver, Storage* Storage, ESP32Time* RTC, SensorManager* Sensors, SignalManager* Signals, Configuration* Config,EventBroadcaster* Event, WebhookManager* Webhooks);
+		Webserver(AsyncWebServer* webserver, ESP32Time* RTC);
 		bool ServerStart();
 		void ServerStop();
 		static void RebootCheckerTaskWrapper(void* arg);
@@ -42,26 +42,8 @@ class Webserver {
 		/// @brief Pointer to the Webserver object
 		AsyncWebServer* server;
 
-		/// @brief Pointer to the storage object
-		Storage* storage;
-
 		/// @brief RTC object for setting and getting time of device
         ESP32Time* rtc;
-
-		/// @brief SensorManager object for collecting sensor data
-		SensorManager* sensors;
-
-		/// @brief SensorManager object for collecting receiver signal data
-		SignalManager* receivers;
-
-		/// @brief Configuration object for managing settings
-		Configuration* config;
-
-		/// @brief Event broadcaster object
-		EventBroadcaster* event;
-
-		/// @brief WebhooksManager object for managing webhooks
-		WebhookManager* webhooks;
 
 		/// @brief Used to indicate an upload had to be aborted
 		static bool upload_abort;

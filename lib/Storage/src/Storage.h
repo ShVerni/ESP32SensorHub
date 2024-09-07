@@ -14,12 +14,9 @@
 #include <SD.h>
 #include <vector>
 
+/// @brief Provides standardized access to various storage media
 class Storage {
 	public:
-		bool begin();
-		bool begin(int mi, int mo, int sck, int cs);
-		bool begin(int clk, int cmd, int d0, int d1, int d2, int d3);
-
 		/// @brief Enum of available storage media 
 		enum class Media
 		{
@@ -28,18 +25,21 @@ class Storage {
 			LittleFS
 		};
 		
+		static bool begin();
+		static bool begin(int mi, int mo, int sck, int cs);
+		static bool begin(int clk, int cmd, int d0, int d1, int d2, int d3);
 		static FS* getFileSystem();
 		static Storage::Media getMediaType();
-		std::vector<String> listDir(String dirname, uint8_t levels);
-		bool fileExists(String path);
-		bool createDir(String path);
-		bool removeDir(String path);
-		String readFile(String path);
-		bool writeFile(String path, String content);
-		bool appendToFile(String path, String content);
-		bool renameFile(String path1, String path2);
-		bool deleteFile(String path);
-		size_t freeSpace();
+		static std::vector<String> listDir(String dirname, uint8_t levels);
+		static bool fileExists(String path);
+		static bool createDir(String path);
+		static bool removeDir(String path);
+		static String readFile(String path);
+		static bool writeFile(String path, String content);
+		static bool appendToFile(String path, String content);
+		static bool renameFile(String path1, String path2);
+		static bool deleteFile(String path);
+		static size_t freeSpace();
 		
 	private:
 		/// @brief The storage media type being used

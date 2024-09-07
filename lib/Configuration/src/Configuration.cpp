@@ -1,30 +1,28 @@
 #include "Configuration.h"
 
-/// @brief Creates a new configuration manager object
-/// @param Storage The storage object used to store the configuration
-/// @param File Name of file used to store the configuration (placed in "/settings" directory)
-Configuration::Configuration(Storage* Storage, String File) {
-	storage = Storage;
-	file = "/settings/" + File;
-}
+// Initialize static variables
+String Configuration::file;
+Configuration::config Configuration::currentConfig;
 
 /// @brief Starts a configuration manager
+/// @param File Name of file used to store the configuration (placed in "/settings" directory)
 /// @return True on success
-bool Configuration::begin() {
-	if (!storage->fileExists("/settings")) {
+bool Configuration::begin(String File) {
+	if (!Storage::fileExists("/settings")) {
 		Serial.println("Creating settings directory");
-		if (!storage->createDir("/settings")) {
+		if (!Storage::createDir("/settings")) {
 			Serial.println("Could not create settings directory");
 			return false;
 		}
 	}
+	file = "/settings/" + File;
 	return true;
 }
 
 /// @brief Deserializes JSON from config file and applies it to current config
 /// @return True on success
 bool Configuration::loadConfig() {
-	String json_string = storage->readFile(file);
+	String json_string = Storage::readFile(file);
 	if (json_string == "") {
 		Serial.println("Could not load config file, or it doesn't exist. Defaults used.");
 		return false;
@@ -69,7 +67,7 @@ bool Configuration::saveConfig() {
 /// @param config A complete and properly formatted JSON string of all the settings
 /// @return True on success
 bool Configuration::saveConfig(String config) {
-	if(!storage->writeFile(file, config)) {
+	if(!Storage::writeFile(file, config)) {
 		Serial.println("Could not write config file");
 		return false;
 	}
