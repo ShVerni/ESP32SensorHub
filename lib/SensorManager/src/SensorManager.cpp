@@ -78,11 +78,11 @@ String SensorManager::getSensorInfo() {
 	// Add sensor info to array
 	for (int i = 0; i < sensors.size(); i++) {
 		// Add sensor description to array
+		sensor_array[i]["positionID"] = i;
 		sensor_array[i]["description"]["name"] = sensors[i]->Description.name;
 		sensor_array[i]["description"]["parameterQuantity"] = sensors[i]->Description.parameterQuantity;
 		sensor_array[i]["description"]["type"] = sensors[i]->Description.type;
 		sensor_array[i]["description"]["id"] = sensors[i]->Description.id;
-		sensor_array[i]["description"]["positionID"] = i;
 		// Add parameters to array
 		for (int j = 0; j < sensors[i]->Description.parameterQuantity; j++) {
 			sensor_array[i]["parameters"][j]["name"] = sensors[i]->Description.parameters[j];

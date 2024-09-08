@@ -65,17 +65,39 @@ bool Webserver::ServerStart() {
 	});
 
 	// Get descriptions of available sensors
-	server->on("/getSensorInfo", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	server->on("/sensors", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorInfo());
 	});
 
-	// Get descriptions of available signal receivers
-	server->on("/getReceiverInfo", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverInfo());
+	// Get curent configuration of a sensor
+	server->on("/sensors/sensor", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("sensor")) {
+			int sensorPosID = request->getParam("sensor")->value().toInt();
+			request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorConfig(sensorPosID));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
 	});
 
-	// Gets last measurement. Add GET paramater "update" (/getMeasurement?update) to take a new measurement first
-	server->on("/getMeasurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	// Update configuration of a sensor
+	server->on("/sensors/config", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("config", true) && request->hasParam("sensor", true)) {
+			// Parse data payload
+			int sensorPosID = request->getParam("sensor", true)->value().toInt();
+			String config = request->getParam("config", true)->value();
+			// Attempt to apply config data
+			if (SensorManager::setSensorConfig(sensorPosID, config)) {
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			} else {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
+			}
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Gets last measurement. Add GET paramater "update" (/sensors/measurement?update) to take a new measurement first
+	server->on("/sensors/measurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("update")) {
 			// Attempt to take new measurement
 			if (!SensorManager::takeMeasurement()) {
@@ -84,6 +106,126 @@ bool Webserver::ServerStart() {
 			}
 		}
 		request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
+	});
+	
+	// Runs a calibration procedure on a sensor
+	server->on("/sensors/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("sensor", true) && request->hasParam("step", true)) {
+			// Parse data payload
+			int sensorPosID = request->getParam("sensor", true)->value().toInt();
+			int step = request->getParam("step", true)->value().toInt();
+
+			// Run sensor calibration
+			std::tuple<Sensor::calibration_response, String> response = SensorManager::calibrateSensor(sensorPosID, step);
+
+			// Create response
+			request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Get descriptions of available signal receivers
+	server->on("/signals", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverInfo());
+	});
+
+	// Get curent configuration of a receiver
+	server->on("/signals/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver")) {
+			int receiverPosID = request->getParam("sensor")->value().toInt();
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverConfig(receiverPosID));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Update configuration of a receiver
+	server->on("/signals/config", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("config", true) && request->hasParam("receiver", true)) {
+			// Parse data payload
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			String config = request->getParam("config", true)->value();
+			// Attempt to apply config data
+			if (SignalManager::setReceiverConfig(receiverPosID, config)) {
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			} else {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
+			}
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Adds a signal to the signal queue using the signal's name
+	server->on("/signals/name", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+			// Parse data payload
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			String signalName = request->getParam("signal", true)->value();
+			String payload = "";
+			if (request->hasParam("payload", true)) {
+				payload = request->getParam("payload", true)->value();
+			}
+			// Attempt to add signal to queue
+			if (!SignalManager::addSignalToQueue(receiverPosID, signalName, payload)) {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+			}
+			request->send(HTTP_CODE_OK, "text/plain", "OK");
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Adds a signal to the signal queue using the signal's ID number
+	server->on("/signals/id", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			int signalID = request->getParam("signal", true)->value().toInt();
+			String payload = "";
+			if (request->hasParam("payload", true)) {
+				payload = request->getParam("payload", true)->value();
+			}
+			// Attempt to add signal to queue
+			if (!SignalManager::addSignalToQueue(receiverPosID, signalID, payload)) {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+			}
+			request->send(HTTP_CODE_OK, "text/plain", "OK");
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Sends a signal to a receiver immediately using the signal's name, and returns response
+	server->on("/signals/immediateSignal", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			String signalName = request->getParam("signal", true)->value();
+			String payload = "";
+			if (request->hasParam("payload", true)) {
+				payload = request->getParam("payload", true)->value();
+			}
+			// Execute signal and return response
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalName, payload));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
+	});
+
+	// Sends a signal to a receiver immediately using the signal's ID number, and returns response
+	server->on("/signals/immediateSignalID", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+			int receiverPosID = request->getParam("receiver", true)->value().toInt();
+			int signalID = request->getParam("signal", true)->value().toInt();
+			String payload = "";
+			if (request->hasParam("payload", true)) {
+				payload = request->getParam("payload", true)->value();
+			}
+			// Execute signal and return response
+			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalID, payload));
+		} else {
+			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+		}
 	});
 
 	// Get curent global configuration
@@ -110,160 +252,6 @@ bool Webserver::ServerStart() {
 			} else {
 				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
 			}
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Gets last measurement. Add GET paramater "update" (/getMeasurement?update) to take a new measurement first
-	server->on("/getMeasurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("update")) {
-			// Attempt to take new measurement
-			if (!SensorManager::takeMeasurement()) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
-				return;
-			}
-		}
-		request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
-	});
-
-	// Get curent configuration of a sensor
-	server->on("/config/sensor", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("sensor")) {
-			int sensorPosID = request->getParam("sensor")->value().toInt();
-			request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorConfig(sensorPosID));
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Update configuration of a sensor
-	server->on("/config/sensor", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("config", true) && request->hasParam("sensor", true)) {
-			// Parse data payload
-			int sensorPosID = request->getParam("sensor", true)->value().toInt();
-			String config = request->getParam("config", true)->value();
-			// Attempt to apply config data
-			if (SensorManager::setSensorConfig(sensorPosID, config)) {
-				request->send(HTTP_CODE_OK, "text/plain", "OK");
-			} else {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
-			}
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Get curent configuration of a receiver
-	server->on("/config/receiver", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver")) {
-			int receiverPosID = request->getParam("sensor")->value().toInt();
-			request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverConfig(receiverPosID));
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Update configuration of a receiver
-	server->on("/config/receiver", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("config", true) && request->hasParam("receiver", true)) {
-			// Parse data payload
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String config = request->getParam("config", true)->value();
-			// Attempt to apply config data
-			if (SignalManager::setReceiverConfig(receiverPosID, config)) {
-				request->send(HTTP_CODE_OK, "text/plain", "OK");
-			} else {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not apply config settings");
-			}
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Adds a signal to the signal queue using the signal's name
-	server->on("/signalName", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			// Parse data payload
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String signalName = request->getParam("signal", true)->value();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			// Attempt to add signal to queue
-			if (!SignalManager::addSignalToQueue(receiverPosID, signalName, payload)) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
-			}
-			request->send(HTTP_CODE_OK, "text/plain", "OK");
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Adds a signal to the signal queue using the signal's ID number
-	server->on("/signalID", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			int signalID = request->getParam("signal", true)->value().toInt();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			// Attempt to add signal to queue
-			if (!SignalManager::addSignalToQueue(receiverPosID, signalID, payload)) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
-			}
-			request->send(HTTP_CODE_OK, "text/plain", "OK");
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Sends a signal to a receiver immediately using the signal's name, and returns response
-	server->on("/immediateSignal", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String signalName = request->getParam("signal", true)->value();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalName, payload));
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Sends a signal to a receiver immediately using the signal's ID number, and returns response
-	server->on("/immediateSignalID", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			int signalID = request->getParam("signal", true)->value().toInt();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalID, payload));
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Runs a calibration procedure on a sensor
-	server->on("/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("sensor", true) && request->hasParam("step", true)) {
-			// Parse data payload
-			int sensorPosID = request->getParam("sensor", true)->value().toInt();
-			int step = request->getParam("step", true)->value().toInt();
-
-			// Run sensor calibration
-			std::tuple<Sensor::calibration_response, String> response = SensorManager::calibrateSensor(sensorPosID, step);
-
-			// Create response
-			request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -299,7 +287,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Fires a webhook using a GET request and the webhook's position ID
-	server->on("/webhookGet", HTTP_POST, [this](AsyncWebServerRequest *request) {
+	server->on("/webhook/get", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("webhook", true) && request->hasParam("type", true)) {
 			int webhookPosID = request->getParam("receiver", true)->value().toInt();
 			String type = request->getParam("type", true)->value();
@@ -339,7 +327,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Fires a webhook using a POST request and the webhook's position ID
-	server->on("/webhookPost", HTTP_POST, [this](AsyncWebServerRequest *request) {
+	server->on("/webhook/post", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("webhook", true) && request->hasParam("type", true) && request->hasParam("parameters", true)) {
 			int webhookPosID = request->getParam("receiver", true)->value().toInt();
 			String type = request->getParam("type", true)->value();
