@@ -65,7 +65,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Get descriptions of available sensors
-	server->on("/sensors", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	server->on("/sensors/", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorInfo());
 	});
 
@@ -126,14 +126,14 @@ bool Webserver::ServerStart() {
 	});
 
 	// Get descriptions of available signal receivers
-	server->on("/signals", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	server->on("/signals/", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverInfo());
 	});
 
 	// Get curent configuration of a receiver
 	server->on("/signals/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("receiver")) {
-			int receiverPosID = request->getParam("sensor")->value().toInt();
+			int receiverPosID = request->getParam("receiver")->value().toInt();
 			request->send(HTTP_CODE_OK, "text/json", SignalManager::getReceiverConfig(receiverPosID));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
@@ -258,7 +258,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Get curent webhooks
-	server->on("/webhooks", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	server->on("/webhooks/", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		request->send(HTTP_CODE_OK, "text/json", WebhookManager::getWebhooks());
 	});
 
@@ -287,7 +287,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Fires a webhook using a GET request and the webhook's position ID
-	server->on("/webhook/get", HTTP_POST, [this](AsyncWebServerRequest *request) {
+	server->on("/webhooks/get", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("webhook", true) && request->hasParam("type", true)) {
 			int webhookPosID = request->getParam("receiver", true)->value().toInt();
 			String type = request->getParam("type", true)->value();
@@ -327,7 +327,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Fires a webhook using a POST request and the webhook's position ID
-	server->on("/webhook/post", HTTP_POST, [this](AsyncWebServerRequest *request) {
+	server->on("/webhooks/post", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("webhook", true) && request->hasParam("type", true) && request->hasParam("parameters", true)) {
 			int webhookPosID = request->getParam("receiver", true)->value().toInt();
 			String type = request->getParam("type", true)->value();
