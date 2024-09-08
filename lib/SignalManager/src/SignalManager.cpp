@@ -110,7 +110,11 @@ String SignalManager::getReceiverInfo() {
 /// @param receiverPosID The position ID of the signal receive
 /// @return A JSON string of configurable settings
 String SignalManager::getReceiverConfig(int receiverPosID) {
-	return receivers[receiverPosID]->getConfig();
+	if (receiverPosID >= 0 && receiverPosID < receivers.size()) {
+		return receivers[receiverPosID]->getConfig();
+	} else {
+		return "{}";
+	}
 }
 
 /// @brief Gets any available config settings for a signal receiver device
@@ -118,7 +122,11 @@ String SignalManager::getReceiverConfig(int receiverPosID) {
 /// @param config A JSON string of the configuration
 /// @return True on success
 bool SignalManager::setReceiverConfig(int receiverPosID, String config) {
-	return receivers[receiverPosID]->setConfig(config);
+	if (receiverPosID >= 0 && receiverPosID < receivers.size()) {
+		return receivers[receiverPosID]->setConfig(config);
+	} else {
+		return false;
+	}
 }
 
 /// @brief Executes a signal on a receiver immediately. Use carefully, may cause issues with signals also being processed from queue

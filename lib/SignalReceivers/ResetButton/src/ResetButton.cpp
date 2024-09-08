@@ -9,33 +9,30 @@ bool ResetButton::begin() {
 	Description.name = "Reset Button";
 	Description.signals = {{"Reset", 0}};
 	Description.id = 0;
+	bool result = false;
 	// Create settings directory if necessary
-	if (!Storage::fileExists("/settings/sig")) {
-		if (!Storage::fileExists("/settings")) {
-			if (!Storage::createDir("/settings")) {
-				return false;
+	if (!Storage::fileExists("/settings/sig/ResetButton.json")) {
+		if (!Storage::fileExists("/settings/sig")) {
+			if (!Storage::fileExists("/settings")) {
+				if (!Storage::createDir("/settings")) {
+					return false;
+				}
+			}
+			if (!Storage::createDir("/settings/sig")) {
+					return false;
 			}
 		}
-		if (!Storage::createDir("/settings/sig")) {
-				return false;
-		}
-	}
-	// Load settings
-	bool result = false;
-	if (!Storage::fileExists("/settings/sig/ResetButton.json")) {
 		// Set defaults
 		current_config = { .pin = D4, .mode = modes::BUTTON_PULLUP, .active = states::BUTTON_LOW };
 		result = saveConfig();
 	} else {
+		// Load settings
 		result = setConfig(Storage::readFile("/settings/sig/ResetButton.json"));
 	}
-	// Config button pin
 	if (result) {
-		pinMode(current_config.pin, current_config.mode);
+		return configureButton();
 	}
-	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
-	xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 1024, this, 1, NULL);
-	return result;
+	return false;
 }
 
 /// @brief Receives a signal
@@ -67,6 +64,12 @@ String ResetButton::getConfig() {
 }
 
 bool ResetButton::setConfig(String config) {
+	// Stop reset checker
+	if(xCreated == pdPASS)
+	{
+		vTaskDelete( xHandle );
+		xCreated = pdFAIL;
+	}
 	// Allocate the JSON document
   	JsonDocument doc;
 	// Deserialize file contents
@@ -81,13 +84,25 @@ bool ResetButton::setConfig(String config) {
 	current_config.pin = doc["pin"].as<int>();
 	current_config.active = doc["active"].as<states>();
 	current_config.mode = doc["mode"].as<modes>();
-	return true;
+	if (!saveConfig()) {
+		return false;
+	}
+	return configureButton();
 }
 
 /// @brief Saves the current config to a JSON file
 /// @return True on success
 bool ResetButton::saveConfig() {
 	return Storage::writeFile("/settings/sig/ResetButton.json", getConfig());
+}
+
+/// @brief Used to configure the button and start the reset checker task
+/// @return True on success
+bool ResetButton::configureButton() {
+	pinMode(current_config.pin, current_config.mode);
+	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
+	xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 1024, this, 1, &xHandle);
+	return xCreated == pdPASS;
 }
 
 /// @brief Wraps the reset checker task for static access

@@ -70,7 +70,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Get curent configuration of a sensor
-	server->on("/sensors/sensor", HTTP_GET, [this](AsyncWebServerRequest *request) {
+	server->on("/sensors/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("sensor")) {
 			int sensorPosID = request->getParam("sensor")->value().toInt();
 			request->send(HTTP_CODE_OK, "text/json", SensorManager::getSensorConfig(sensorPosID));

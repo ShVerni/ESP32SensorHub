@@ -20,6 +20,12 @@ class ResetButton : public SignalReceiver {
 		/// @brief Describes available pin states
 		enum modes { NONE = 0x1, BUTTON_PULLUP = 0x5, BUTTON_PULLDOWN = 0x9 };
 
+		/// @brief Handle for task that checks for reset
+		TaskHandle_t xHandle = NULL;
+
+		/// @brief Used to check if the task was created
+		BaseType_t xCreated = pdFAIL;
+
 		/// @brief Describes available button active states
 		enum states { BUTTON_LOW = 0x0, BUTTON_HIGH = 0x1 };
 		
@@ -42,6 +48,7 @@ class ResetButton : public SignalReceiver {
 		EventBroadcaster* event;
 		
 		bool saveConfig();
+		bool configureButton();
 		void reset();
 		void ResetChecker();
 		static void ResetCheckerTaskWrapper(void* arg);
