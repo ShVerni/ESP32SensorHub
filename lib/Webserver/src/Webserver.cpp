@@ -54,8 +54,11 @@ bool Webserver::ServerStart() {
 			String path = request->getParam("path", true)->value();
 			Serial.println("Deleting " + path);
 			if (Storage::fileExists(path)) {
-				bool success = Storage::deleteFile(path);
-				request->send(HTTP_CODE_OK, "text/plain", success ? "OK" : "FAIL");
+				if (!Storage::deleteFile(path)) {
+					request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not delete file");
+				} else {
+					request->send(HTTP_CODE_OK, "text/json", "{\"file\":\"" + path + "\"}");
+				}
 			} else {
 				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "File doesn't exist");
 			}
@@ -363,20 +366,10 @@ bool Webserver::ServerStart() {
 	// Sets the time on the device (example of parsing JSON parameters)
 	server->on("/setTime", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (!WiFiClient) {
-			if (request->hasParam("time", true)) {
+			if (request->hasParam("time", true) && request->hasParam("offset")) {
 				// Parse data payload
-				String time_data_string = request->getParam("time", true)->value();
-				JsonDocument time_data;
-				DeserializationError error = deserializeJson(time_data, time_data_string);
-				// Test if parsing succeeds.
-				if (error) {
-					Serial.print(F("Deserialization failed: "));
-					Serial.println(error.f_str());
-					request->send(HTTP_CODE_BAD_REQUEST, "text/plain", error.f_str());
-					return;
-				}
-				long time = time_data["time"];
-				long offset = time_data["offset"];
+				long time = request->getParam("time", true)->value().toInt();
+				long offset = request->getParam("offset", true)->value().toInt();
 				
 				// Apply time settings
     			rtc->setTime(time);

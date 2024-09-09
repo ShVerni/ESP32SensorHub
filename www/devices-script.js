@@ -5,8 +5,8 @@
 
 // Run code when page DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-    GETRequest(addSensors, "/sensors/");
-    GETRequest(addReceivers, "/signals/");
+    GETRequest("/sensors/", addSensors);
+    GETRequest("/signals/", addReceivers);
 
 });
 
@@ -51,7 +51,7 @@ function loadDevice(isSensor, name, posID) {
 	}
 	data = {};
 	data[dataName] = posID;
-	GETRequest(addDeviceConfig, path, data);
+	GETRequest(path, addDeviceConfig, data);
 }
 
 // Adds a device configuration to the page
@@ -101,54 +101,4 @@ function updateDeviceConfig(isSensor, posID) {
 	data[dataName] = posID;
 	data['config'] = JSON.stringify(new_config);
 	POSTRequest(path, "Device config updated!", data);
-}
-
-// Send a POST request with an optional object of key/value pairs for parameters
-function POSTRequest(path, successMessage, params = {}) {
-	document.getElementById('message').innerHTML = "";
-	let xhr = new XMLHttpRequest(), data = new FormData();
-	if (Object.keys(params).length !== 0 ) {
-		for (param in params) {
-			data.append(param, params[param]);
-		}
-	}
-	xhr.open('POST', path);
-	xhr.onload = function() {
-		if (this.status !== 200) {
-			document.getElementById('message').innerHTML = this.response;
-		} else {
-			document.getElementById('message').innerHTML = successMessage;
-		}
-	};
-	xhr.send(data); 
-}
-
-// Send a GET request with an optional object of key value pairs for parameters
-// Returns the response to the callback provided
-function GETRequest(callback, path, params = {}) {
-    let xhr = new XMLHttpRequest();
-	xhr.responseType = 'json';
-    if (Object.keys(params).length !== 0 ) {
-		let first = true
-		path += "?";
-		for (param in params) {
-			if (first) {
-				first = false;
-			} else {
-				path += "&";
-			}
-			path += param + "=" + params[param];
-		}
-	}
-    xhr.open('GET', path);
-	xhr.onload = function() {
-		if (this.status != 200) {
-			document.getElementById('message').innerHTML = this.response;
-		} else {
-			let response = xhr.response;
-			console.log(response);
-			callback(response);
-		}
-	};
-	xhr.send();
 }
