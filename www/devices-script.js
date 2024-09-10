@@ -62,6 +62,7 @@ function addDeviceConfig(device) {
 		const holder = document.getElementById("device");
 		let type = "text";
 		let step = 1;
+		let additionalAttrb = "";
 		for (opt in device) {
 			let name = opt.replace(" ", "_");
 			if (typeof(device[opt]) === "number") {
@@ -69,11 +70,14 @@ function addDeviceConfig(device) {
 				if (!Number.isInteger(device[opt])) {
 					step = 0.01;
 				}
-				} else {
-
+			} else if (typeof(device[opt]) === "boolean") {
+				type = "checkbox";
+				if (device[opt] === true) {
+					additionalAttrb= "checked";
+				}
 			}
 			holder.innerHTML += '<label for="' + name + '">' + opt + '</label>';
-			holder.innerHTML += '<input class="stacked-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + device[opt] + '">';
+			holder.innerHTML += '<input class="stacked-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + device[opt] + '" ' + additionalAttrb +'>';
 		}
 		holder.innerHTML += '<div class="button-container"><button class="def-button" onclick="updateDeviceConfig(' + holder.dataset.sensor + ',' + holder.dataset.posid + ')">Update Config</button></div>';
 	}
@@ -86,7 +90,10 @@ function updateDeviceConfig(isSensor, posID) {
 	Array.from(inputs).forEach((input) => {
 		if (input.type === "number") {
 			new_config[input.name] = input.valueAsNumber;
-		} else {
+		} else if (input.type === "checkbox") {
+			new_config[input.name] = input.checked;
+		} 
+		else {
 			new_config[input.name] = input.value;
 		}
 	});

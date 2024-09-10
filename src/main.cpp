@@ -16,23 +16,15 @@
 #include <EventBroadcaster.h>
 #include <SignalManager.h>
 #include <WebServer.h>
+#include <WiFiConfig.h>
 #include <SensorManager.h>
 #include <ResetButton.h>
+#include <PeriodicTasks.h>
 #include <LEDIndicator.h>
+#include <LocalDataLogger.h>
 
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
-
-// Uncomment the below to enable online WiFi client mode, comment out to operate offline as an AP
-#define WIFI_CLIENT
-
-#ifdef WIFI_CLIENT
-	extern const bool WiFiClient = true;
-	#include <WiFiConfig.h>
-	// Button to clear saved WiFi client settings
-#else
-	extern const bool WiFiClient = false;
-#endif
 
 /// @brief Stores settings in NVS
 Preferences settings;
@@ -50,6 +42,9 @@ LEDIndicator led(D8, 1);
 
 /// @brief Reset button object
 ResetButton reset_button;
+
+/// @brief For logging data to local storage
+LocalDataLogger logger(&rtc);
 
 /******** End sensor and receiver object declaration ********/
 
@@ -90,7 +85,14 @@ void setup() {
 		while(true);
 	}
 
-	#ifdef WIFI_CLIENT
+	// Start configuration manager
+	if (!Configuration::begin()) {
+		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
+		Serial.println("Could not start configuration manager");
+		while(true);
+	}
+
+	if (Configuration::currentConfig.WiFiClient) {
 		// Configure WiFi client
 		DNSServer dns;
 		AsyncWiFiManager manager(&server, &dns);
@@ -101,10 +103,10 @@ void setup() {
 		// Set local time via NTP
 		configTime(Configuration::currentConfig.gmtOffset_sec, Configuration::currentConfig.daylightOffset_sec, Configuration::currentConfig.ntpServer.c_str());
 		Serial.println("Time set via NTP");
-	#else
+	} else {
 		// Start AP
 		WiFi.softAP(Configuration::currentConfig.configSSID, Configuration::currentConfig.configPW);
-	#endif
+	}
 	
 	/// @brief Webserver handling all requests
 	Webserver webserver(&server, &rtc);
@@ -115,13 +117,6 @@ void setup() {
 	// Start the update server
 	webserver.ServerStart();
 	xTaskCreate(Webserver::RebootCheckerTaskWrapper, "Reboot Checker Loop", 1024, &webserver, 1, NULL);
-
-	// Start configuration manager
-	if (!Configuration::begin()) {
-		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
-		Serial.println("Could not start configuration manager");
-		while(true);
-	}
 
 	// TEMPORARY: Create dummy config here until web interface is built
 	Configuration::currentConfig.enabled = true;
@@ -144,6 +139,7 @@ void setup() {
 	/******** Add sensors and receivers here ********/
 
 	SignalManager::addReceiver(&reset_button);
+	SignalManager::addReceiver(&logger);
 
 	/******** End sensor and receiver addition section ********/
 
@@ -180,35 +176,26 @@ void setup() {
 
 // Used for tracking time intervals for timed events
 ulong current_mills = 0;
-ulong previous_mills_measure = 0;
+ulong previous_mills_task = 0;
 
-#ifdef WIFI_CLIENT
-	// Used to automatically synchronize clock at regular intervals
-	ulong previous_millis_ntp = 0;
-#endif
+// Used to automatically synchronize clock at regular intervals
+ulong previous_millis_ntp = 0;
 
 void loop() {
 	current_mills = millis();
-	#ifdef WIFI_CLIENT
+	if(Configuration::currentConfig.WiFiClient) {
 		// Synchronize the time every 6 hours
 		if (current_mills - previous_millis_ntp > 21600000) {
 			configTime(Configuration::currentConfig.gmtOffset_sec, Configuration::currentConfig.daylightOffset_sec, Configuration::currentConfig.ntpServer.c_str());
 			previous_millis_ntp = current_mills;
 		}
-	#endif
+	}
 	if (Configuration::currentConfig.enabled) {
-		// Perform actions periodically
-		if (current_mills - previous_mills_measure > Configuration::currentConfig.period) {
-			if (SensorManager::takeMeasurement()) {
-				// Do something with measurements
-				for (const auto &m : SensorManager::measurements) {
-					Serial.println(m.parameter + ": " + m.value + " " + m.unit);
-				}
-			} else {
-				Serial.println("Measurement failed");
-			}
-			previous_mills_measure = current_mills;
+		// Perform tasks periodically
+		if (current_mills - previous_mills_task > Configuration::currentConfig.period) {
+			previous_mills_task = current_mills;
+			PeriodicTasks::callTasks();
 		}
 	}
-	delay(50);
+	vTaskDelay(100 / portTICK_PERIOD_MS);
 }

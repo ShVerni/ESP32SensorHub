@@ -29,10 +29,7 @@
 
 /// @brief Local web server.
 class Webserver {
-	public:
-		/// @brief Used to signal that a reboot is requested or needed
-		bool shouldReboot = false;
-		
+	public:		
 		Webserver(AsyncWebServer* webserver, ESP32Time* RTC);
 		bool ServerStart();
 		void ServerStop();
@@ -50,6 +47,9 @@ class Webserver {
 
 		/// @brief Used to indicate the status code of the last upload
 		static int upload_response_code;
+
+		/// @brief Used to signal that a reboot is requested or needed
+		static bool shouldReboot;
 
 		static void onUpload_file(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 		static void onUpdate(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);

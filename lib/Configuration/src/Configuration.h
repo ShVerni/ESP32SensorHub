@@ -34,6 +34,8 @@ class Configuration {
 			/// @brief Offset from GMT in seconds
 			long  gmtOffset_sec = -18000;
 
+			bool WiFiClient = true;
+
 			/// @brief SSID for configuration interface
 			String configSSID = "SensorHub_Config";
 

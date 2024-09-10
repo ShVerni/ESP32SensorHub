@@ -1,13 +1,11 @@
 #include "Webserver.h"
 
-/// @brief Used to tell if operating in WiFi client mode
-extern const bool WiFiClient;
-
 /// @brief Holds current firmware version
 extern const String FW_VERSION;
 
 // Initialize static variables
 bool Webserver::upload_abort = false;
+bool Webserver::shouldReboot = false;
 int Webserver::upload_response_code = 201;
 
 /// @brief Creates a Webserver object
@@ -41,7 +39,7 @@ bool Webserver::ServerStart() {
 	// Handle file uploads
 	server->on("/upload-file", HTTP_POST, [](AsyncWebServerRequest *request) {
 		// Let upload start
-		delay(50);
+		vTaskDelay(50 / portTICK_PERIOD_MS);
 		// Construct response
 		AsyncWebServerResponse *response = request->beginResponse(Webserver::upload_response_code, "text/plain", Webserver::upload_abort ? "Upload failed": "File uploaded");
 		response->addHeader("Connection", "close");
@@ -365,7 +363,7 @@ bool Webserver::ServerStart() {
 
 	// Sets the time on the device (example of parsing JSON parameters)
 	server->on("/setTime", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (!WiFiClient) {
+		if (!Configuration::currentConfig.WiFiClient) {
 			if (request->hasParam("time", true) && request->hasParam("offset")) {
 				// Parse data payload
 				long time = request->getParam("time", true)->value().toInt();
@@ -407,7 +405,7 @@ bool Webserver::ServerStart() {
 		WiFi.persistent(true);
 		WiFi.disconnect(true, true);
 		WiFi.persistent(false);
-		shouldReboot = true;
+		Webserver::shouldReboot = true;
 	});
 
 	// Handle reboot request
@@ -417,7 +415,7 @@ bool Webserver::ServerStart() {
 		} else {
 			request->send(HTTP_CODE_OK, "text/plain", "OK");
 		}
-		this->shouldReboot = true;
+		Webserver::shouldReboot = true;
 	});
 
 	// Handle listing files
@@ -472,13 +470,13 @@ bool Webserver::ServerStart() {
 	// Update firmware
 	server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		// Let update start
-		delay(50);
+		vTaskDelay(50 / portTICK_PERIOD_MS);
 		
 		// Check if should reboot
-		shouldReboot = !Update.hasError();
+		Webserver::shouldReboot = !Update.hasError();
 
 		// Construct response
-		AsyncWebServerResponse *response = request->beginResponse(this->shouldReboot ? HTTP_CODE_ACCEPTED : HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", this->shouldReboot ? "OK" : "ERROR");
+		AsyncWebServerResponse *response = request->beginResponse(Webserver::shouldReboot ? HTTP_CODE_ACCEPTED : HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", this->Webserver::shouldReboot ? "OK" : "ERROR");
 		response->addHeader("Connection", "close");
 		request->send(response);
 	}, onUpdate);    
@@ -508,15 +506,15 @@ void Webserver::RebootCheckerTaskWrapper(void* arg) {
 /// @brief Checks if a reboot was requested
 void Webserver::RebootChecker() {
 	while (true) {
-		if (shouldReboot) {
-			Serial.println("Rebooting...");
+		if (Webserver::shouldReboot) {
+			Serial.println("Rebooting from API call...");
 			// Delay to show LED and let server send response
 			EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
-			delay(3000);
+			vTaskDelay(3000 / portTICK_PERIOD_MS);
 			ESP.restart();
 		}
 		// This loop doesn't need to be tight
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
 	}
 }
 

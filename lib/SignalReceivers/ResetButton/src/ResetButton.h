@@ -3,6 +3,8 @@
 * 
 * ArduinoJSON: https://arduinojson.org/
 * 
+* This could be done as a periodic task but is implemented with its own task loop as an example for how to do that
+*
 * Contributors: Sam Groveman
 */
 

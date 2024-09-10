@@ -63,6 +63,9 @@ String ResetButton::getConfig() {
 	return output;
 }
 
+/// @brief Sets the configuration for this device
+/// @param config The JSON config to use
+/// @return True on success
 bool ResetButton::setConfig(String config) {
 	// Stop reset checker
 	if(xCreated == pdPASS)
@@ -128,7 +131,7 @@ void ResetButton::reset() {
 	WiFi.persistent(true);
 	WiFi.disconnect(true, true);
 	WiFi.persistent(false);
-	Serial.println("Rebooting...");
+	Serial.println("Rest button pressed...");
 	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
 	delay(3000);
 	ESP.restart();		
