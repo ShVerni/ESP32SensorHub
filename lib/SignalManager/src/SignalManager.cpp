@@ -133,12 +133,12 @@ bool SignalManager::setReceiverConfig(int receiverPosID, String config) {
 /// @param receiverPosID The position ID of the signal receiver
 /// @param signal The name of the signal
 /// @param payload An optional JSON string for data payload
-/// @return A JSON string that is the response from the signal
-String SignalManager::processSignalImmediately(int receiverPosID, String signal, String payload) {
+/// @return A tuple with a string containing any response, and a bool indicating if it's JSON formatted
+std::tuple<bool, String> SignalManager::processSignalImmediately(int receiverPosID, String signal, String payload) {
 	// Check if receiver is in-use
 	if(receiverPosID < 0 || receiverPosID >= receivers.size()) {
 		Serial.println("Receiver position Id out of range");
-		return R"({"success": false})";
+		return { true, R"({"success": false})" };
 	}
 
 	// Attempt to convert signal name to ID
@@ -147,7 +147,7 @@ String SignalManager::processSignalImmediately(int receiverPosID, String signal,
 		signal_id = receivers[receiverPosID]->Description.signals.at("signal");
 	} catch (const std::out_of_range& e) {
 		Serial.println("Receiver cannot process signal");
-		return R"({"success": false})";
+		return{ true, R"({"success": false})" };
 	}
 	// Process signal
 	return processSignalImmediately(receiverPosID, signal_id, payload);
@@ -157,12 +157,12 @@ String SignalManager::processSignalImmediately(int receiverPosID, String signal,
 /// @param receiverPosID The position ID of the signal receiver
 /// @param signal The ID of the signal
 /// @param payload An optional JSON string for data payload
-/// @return A JSON string that is the response from the signal
-String SignalManager::processSignalImmediately(int receiverPosID, int signal, String payload) {
+/// @return A tuple with a string containing any response, and a bool indicating if it's JSON formatted
+std::tuple<bool, String> SignalManager::processSignalImmediately(int receiverPosID, int signal, String payload) {
 	// Check if receiver is in-use
 	if(receiverPosID < 0 || receiverPosID >= receivers.size()) {
 		Serial.println("Receiver position Id out of range");
-		return R"({"success": false})";
+		return { true, R"({"success": false})" };
 	}
 	// Process signal
 	return receivers[receiverPosID]->receiveSignal(signal, payload);

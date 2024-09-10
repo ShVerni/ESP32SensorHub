@@ -57,7 +57,7 @@ class ResetButton : public SignalReceiver {
 
 	public:
 		bool begin();
-		String receiveSignal(int signal, String payload = "");
+		std::tuple<bool, String> receiveSignal(int signal, String payload = "");
 		String getConfig();
 		bool setConfig(String config);
 };

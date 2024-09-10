@@ -30,8 +30,8 @@ class SignalManager {
 		static bool beginReceivers();
 		static bool addSignalToQueue(int receiverPosID, String signal, String payload = "");
 		static bool addSignalToQueue(int receiverPosID, int signal, String payload = "");
-		static String processSignalImmediately(int receiverPosID, String signal, String payload = "");
-		static String processSignalImmediately(int receiverPosID, int signal, String payload = "");
+		static std::tuple<bool, String> processSignalImmediately(int receiverPosID, String signal, String payload = "");
+		static std::tuple<bool, String> processSignalImmediately(int receiverPosID, int signal, String payload = "");
 		static String getReceiverInfo();
 		static String getReceiverConfig(int receiverPosID);
 		static bool setReceiverConfig(int receiverPosID, String config);

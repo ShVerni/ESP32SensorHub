@@ -56,10 +56,10 @@ function loadDevice(isSensor, name, posID) {
 
 // Adds a device configuration to the page
 function addDeviceConfig(device) {
+	const holder = document.getElementById("device");
 	if (Object.keys(device).length === 0 ) {
 		holder.innerHTML += '<p>No configurable options</p>';
 	} else {
-		const holder = document.getElementById("device");
 		let type = "text";
 		let step = 1;
 		let additionalAttrb = "";

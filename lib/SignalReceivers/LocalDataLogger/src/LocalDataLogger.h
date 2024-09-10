@@ -10,7 +10,6 @@
 #include <Arduino.h>
 #include <SignalReceiver.h>
 #include <PeriodicTasks.h>
-#include <EventBroadcaster.h>
 #include <SensorManager.h>
 #include <ESP32Time.h>
 #include <Storage.h>

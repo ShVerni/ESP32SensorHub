@@ -93,11 +93,8 @@ bool LocalDataLogger::setConfig(String config) {
 	current_config.name = doc["name"].as<String>();
 	current_config.enabled = doc["enabled"].as<bool>();
 	path = "/data/" + current_config.name;
-	if (!saveConfig()) {
-		return false;
-	}
 	enableLogging(current_config.enabled);
-	return true;
+	return saveConfig();
 }
 
 /// @brief Saves the current config to a JSON file

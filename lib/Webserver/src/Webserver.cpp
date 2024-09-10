@@ -158,72 +158,82 @@ bool Webserver::ServerStart() {
 		}
 	});
 
-	// Adds a signal to the signal queue using the signal's name
-	server->on("/signals/name", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+	// Adds a signal to the signal queue using the signal's name or ID
+	server->on("/signals/add", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
 			// Parse data payload
+			bool id = true;
 			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String signalName = request->getParam("signal", true)->value();
 			String payload = "";
 			if (request->hasParam("payload", true)) {
 				payload = request->getParam("payload", true)->value();
 			}
 			// Attempt to add signal to queue
-			if (!SignalManager::addSignalToQueue(receiverPosID, signalName, payload)) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+			bool success = false;
+			if (request->hasParam("id", true)) {
+				success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+			} else {
+				success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("name", true)->value(), payload);
 			}
-			request->send(HTTP_CODE_OK, "text/plain", "OK");
+			if (!success) {
+				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+			} else {
+				request->send(HTTP_CODE_OK, "text/plain", "OK");
+			}
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
 	});
 
-	// Adds a signal to the signal queue using the signal's ID number
-	server->on("/signals/id", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
+	// Sends a signal to a receiver immediately using the signal'a name or ID, and returns any response
+	server->on("/signals/execute", HTTP_POST, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
+			// Parse data payload
+			bool id = true;
 			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			int signalID = request->getParam("signal", true)->value().toInt();
 			String payload = "";
 			if (request->hasParam("payload", true)) {
 				payload = request->getParam("payload", true)->value();
 			}
-			// Attempt to add signal to queue
-			if (!SignalManager::addSignalToQueue(receiverPosID, signalID, payload)) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+			std::tuple<bool, String> result;
+			if (request->hasParam("id", true)) {
+				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+			} else {
+				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name", true)->value(), payload);
 			}
-			request->send(HTTP_CODE_OK, "text/plain", "OK");
-		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
-		}
-	});
-
-	// Sends a signal to a receiver immediately using the signal's name, and returns response
-	server->on("/signals/immediateSignal", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String signalName = request->getParam("signal", true)->value();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
+			String mime = "text/json";
+			if (!std::get<0>(result)) {
+				mime = "text/plain";
 			}
 			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalName, payload));
+			request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
 	});
 
-	// Sends a signal to a receiver immediately using the signal's ID number, and returns response
-	server->on("/signals/immediateSignalID", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && request->hasParam("signal", true)) {
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			int signalID = request->getParam("signal", true)->value().toInt();
+	// Sends a signal to a receiver immediately using the signal'a name or ID, and returns any response
+	server->on("/signals/execute", HTTP_GET, [this](AsyncWebServerRequest *request) {
+		if (request->hasParam("receiver") && (request->hasParam("id") || request->hasParam("name"))) {
+			// Parse data payload
+			bool id = true;
+			int receiverPosID = request->getParam("receiver")->value().toInt();
 			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
+			if (request->hasParam("payload")) {
+				payload = request->getParam("payload")->value();
+			}
+			std::tuple<bool, String> result;
+			if (request->hasParam("id")) {
+				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id")->value().toInt(), payload);
+			} else {
+				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name")->value(), payload);
+			}
+			String mime = "text/json";
+			if (!std::get<0>(result)) {
+				mime = "text/plain";
 			}
 			// Execute signal and return response
-			request->send(HTTP_CODE_OK, "text/json", SignalManager::processSignalImmediately(receiverPosID, signalID, payload));
+			request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 		} else {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
@@ -264,7 +274,7 @@ bool Webserver::ServerStart() {
 	});
 
 	// Update webhooks
-	server->on("/webhooks", HTTP_POST, [this](AsyncWebServerRequest *request) {
+	server->on("/webhooks/", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("webhooks", true) && request->hasParam("save", true)) {
 			// Parse data payload
 			bool save = request->getParam("save", true)->value() == "1";

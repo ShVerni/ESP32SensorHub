@@ -39,11 +39,11 @@ bool ResetButton::begin() {
 /// @param signal The signal to process (only option is 0 for reset)
 /// @param payload Not used
 /// @return JSON response with OK
-String ResetButton::receiveSignal(int signal, String payload) {
+std::tuple<bool, String> ResetButton::receiveSignal(int signal, String payload) {
 	if (signal == 0) {
 		reset();
 	}	
-	return R"({"Response": "OK"})";
+	return { true, R"({"Response": "OK"})" };
 }
 
 /// @brief Gets the current config
