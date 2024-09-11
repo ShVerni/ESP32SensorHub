@@ -24,8 +24,6 @@
 #include <LocalDataLogger.h>
 #include <DataTemplate.h>
 
-Serial.println();
-
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
 
