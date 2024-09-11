@@ -22,6 +22,9 @@
 #include <PeriodicTasks.h>
 #include <LEDIndicator.h>
 #include <LocalDataLogger.h>
+#include <DataTemplate.h>
+
+Serial.println();
 
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
@@ -45,6 +48,9 @@ ResetButton reset_button;
 
 /// @brief For logging data to local storage
 LocalDataLogger logger(&rtc);
+
+/// @brief For retrieving data formatted for Prometheus
+DataTemplate schema_maker;
 
 /******** End sensor and receiver object declaration ********/
 
@@ -137,9 +143,10 @@ void setup() {
 	}
 
 	/******** Add sensors and receivers here ********/
-
+	
 	SignalManager::addReceiver(&reset_button);
 	SignalManager::addReceiver(&logger);
+	SignalManager::addReceiver(&schema_maker);
 
 	/******** End sensor and receiver addition section ********/
 

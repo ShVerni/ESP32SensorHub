@@ -75,6 +75,8 @@ function addDeviceConfig(device) {
 				if (device[opt] === true) {
 					additionalAttrb= "checked";
 				}
+			} else if (typeof(device[opt]) === "string") {
+				device[opt] = device[opt].replaceAll('"', '&quot;');
 			}
 			holder.innerHTML += '<label for="' + name + '">' + opt + '</label>';
 			holder.innerHTML += '<input class="stacked-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + device[opt] + '" ' + additionalAttrb +'>';
