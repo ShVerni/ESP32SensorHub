@@ -36,7 +36,6 @@ function addSettings(config) {
 			holder.innerHTML += '<div class="stacked-input"><label for="' + name + '">' + opt + '</label>\
 			<input class="normal-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + config[opt] + '" ' + additionalAttrb +'></div>';
 		}
-		console.log(holder.innerHTML);
 	}
 }
 
