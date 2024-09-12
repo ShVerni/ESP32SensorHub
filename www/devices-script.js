@@ -1,12 +1,12 @@
 /*
- * This file is licensed under the GPLv3 License Copyright (c) 2024 Sam Groveman
- * Contributors: Sam Groveman
- */
+* This file is licensed under the GPLv3 License Copyright (c) 2024 Sam Groveman
+* Contributors: Sam Groveman
+*/
 
 // Run code when page DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-    GETRequest("/sensors/", addSensors);
-    GETRequest("/signals/", addReceivers);
+	GETRequest("/sensors/", addSensors);
+	GETRequest("/signals/", addReceivers);
 
 });
 
@@ -60,10 +60,10 @@ function addDeviceConfig(device) {
 	if (Object.keys(device).length === 0 ) {
 		holder.innerHTML += '<p>No configurable options</p>';
 	} else {
-		let type = "text";
-		let step = 1;
-		let additionalAttrb = "";
 		for (opt in device) {
+			let type = "text";
+			let step = 1;
+			let additionalAttrb = "";
 			let name = opt.replace(" ", "_");
 			if (typeof(device[opt]) === "number") {
 				type = "number";
@@ -78,8 +78,8 @@ function addDeviceConfig(device) {
 			} else if (typeof(device[opt]) === "string") {
 				device[opt] = device[opt].replaceAll('"', '&quot;');
 			}
-			holder.innerHTML += '<label for="' + name + '">' + opt + '</label>';
-			holder.innerHTML += '<input class="stacked-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + device[opt] + '" ' + additionalAttrb +'>';
+			holder.innerHTML += '<div class="stacked-input"><label for="' + name + '">' + opt + '</label>\
+			<input class="normal-input" type="' + type + '" name="' + name + '" step="' + step + '" value="' + device[opt] + '" ' + additionalAttrb +'></div>';
 		}
 		holder.innerHTML += '<div class="button-container"><button class="def-button" onclick="updateDeviceConfig(' + holder.dataset.sensor + ',' + holder.dataset.posid + ')">Update Config</button></div>';
 	}
@@ -100,14 +100,10 @@ function updateDeviceConfig(isSensor, posID) {
 		}
 	});
 	console.log(new_config);
-	let path = "/signals/config";
-	let dataName = "receiver";
+
 	if (isSensor) {
-		path = "/sensors/config";
-		dataName = "sensor";
+		POSTRequest('/sensors/config', "Device config updated!", {'sensor': posID, 'config': JSON.stringify(new_config)});
+	} else {
+		POSTRequest('/signals/config', "Device config updated!", {'receiver': posID, 'config': JSON.stringify(new_config)});
 	}
-	let data = {};
-	data[dataName] = posID;
-	data['config'] = JSON.stringify(new_config);
-	POSTRequest(path, "Device config updated!", data);
 }

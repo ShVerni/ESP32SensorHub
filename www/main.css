@@ -119,12 +119,15 @@ table {
 	color: blue;
 }
 
-.stacked-input {
+.normal-input {
 	margin: 8px auto;
 	padding: 12px 20px;
-	display: block;
 	border: 1px solid #9b97a3;
 	border-radius: 4px;
 	box-sizing: border-box;
 	font-size: 20px;
+}
+
+.stacked-input {
+	display: block;
 }

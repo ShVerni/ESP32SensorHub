@@ -122,10 +122,6 @@ void setup() {
 	webserver.ServerStart();
 	xTaskCreate(Webserver::RebootCheckerTaskWrapper, "Reboot Checker Loop", 1024, &webserver, 1, NULL);
 
-	// TEMPORARY: Create dummy config here until web interface is built
-	Configuration::currentConfig.enabled = true;
-	Configuration::saveConfig();
-
 	// Load saved configuration if there is one
 	if (!Configuration::loadConfig()) {
 		EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Error);
@@ -167,9 +163,10 @@ void setup() {
 		while(true);
 	}
 
-	// Print the configured sensors and receivers
+	// Print the configured sensors, receivers, and webhooks
 	Serial.println(SensorManager::getSensorInfo());
 	Serial.println(SignalManager::getReceiverInfo());
+	Serial.println(WebhookManager::getWebhooks());
 
 	// Start signal processor loop (8K of stack depth is probably overkill, but it does process potentially large JSON strings and we have the RAM, so better to be safe)
 	xTaskCreate(SignalManager::signalProcessor, "Command Processor Loop", 8192, NULL, 1, NULL);
@@ -195,7 +192,7 @@ void loop() {
 			previous_millis_ntp = current_mills;
 		}
 	}
-	if (Configuration::currentConfig.enabled) {
+	if (Configuration::currentConfig.tasksEnabled) {
 		// Perform tasks periodically
 		if (current_mills - previous_mills_task > Configuration::currentConfig.period) {
 			previous_mills_task = current_mills;

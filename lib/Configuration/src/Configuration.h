@@ -19,8 +19,8 @@ class Configuration {
 
 		/// @brief Defines the configuration 
 		typedef struct config {
-			/// @brief Controls whether the sensor hub is enabled
-			bool enabled = false;
+			/// @brief Controls whether the sensor scheduled tasks are enabled
+			bool tasksEnabled = false;
 			
 			/// @brief Controls the sampling period of the sensor hub
 			int period = 10000;

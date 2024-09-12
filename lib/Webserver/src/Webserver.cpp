@@ -248,7 +248,7 @@ bool Webserver::ServerStart() {
 	server->on("/config", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		if (request->hasParam("config", true) && request->hasParam("save", true)) {
 			// Parse data payload
-			bool save = request->getParam("save", true)->value() == "1";
+			bool save = request->getParam("save", true)->value() == "true";
 			String config_string = request->getParam("config", true)->value();
 			// Attempt to apply config data
 			if (Configuration::updateConfig(config_string)) {

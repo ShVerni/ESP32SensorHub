@@ -46,7 +46,7 @@ bool Configuration::updateConfig(String config) {
 		return false;
 	}
 	// Assign loaded values
-	currentConfig.enabled = doc["enabled"].as<bool>();
+	currentConfig.tasksEnabled = doc["tasksEnabled"].as<bool>();
 	currentConfig.period = doc["period"].as<int>();
 	currentConfig.ntpServer = doc["ntpServer"].as<String>();
 	currentConfig.daylightOffset_sec = doc["gmtOffset"].as<int>();
@@ -86,7 +86,7 @@ String Configuration::configToJSON() {
 	// Allocate the JSON document
 	JsonDocument doc;
 	// Assign current values
-	doc["enabled"] = currentConfig.enabled;
+	doc["tasksEnabled"] = currentConfig.tasksEnabled;
 	doc["period"] = currentConfig.period;
 	doc["ntpServer"] = currentConfig.ntpServer;
 	doc["gmtOffset"] = currentConfig.gmtOffset_sec;

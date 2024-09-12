@@ -7,6 +7,7 @@
  */
 
 // Send a POST request with an optional object of key/value pairs for parameters
+// Returns the response to the optional callback provided
 function POSTRequest(path, successMessage, params = {}, callback = null) {
 	document.getElementById('message').innerHTML = "";
 	let xhr = new XMLHttpRequest(), data = new FormData();
@@ -33,6 +34,7 @@ function POSTRequest(path, successMessage, params = {}, callback = null) {
 }
 
 // Send a PUT request with an optional object of key/value pairs for parameters
+// Returns the response to the optional callback provided
 function PUTRequest(path, successMessage, params = {}, callback = null) {
 	document.getElementById('message').innerHTML = "";
 	let xhr = new XMLHttpRequest(), data = new FormData();
@@ -59,7 +61,7 @@ function PUTRequest(path, successMessage, params = {}, callback = null) {
 }
 
 // Send a GET request with an optional object of key value pairs for parameters
-// Returns the response to the callback provided
+// Returns the response to the optional callback provided
 function GETRequest(path, callback = null, params = {}) {
     let xhr = new XMLHttpRequest();
 	xhr.responseType = 'json';
