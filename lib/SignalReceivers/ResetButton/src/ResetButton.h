@@ -16,7 +16,7 @@
 #include <EventBroadcaster.h>
 #include <ArduinoJson.h>
 
-/// @brief Provides a button to reset WiFi settings
+/// @brief Provides a button to factory reset device
 class ResetButton : public SignalReceiver {
 	private:
 		/// @brief Describes available pin states

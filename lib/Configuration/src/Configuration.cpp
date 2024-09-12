@@ -25,7 +25,7 @@ bool Configuration::loadConfig() {
 	String json_string = Storage::readFile(file);
 	if (json_string == "") {
 		Serial.println("Could not load config file, or it doesn't exist. Defaults used.");
-		return false;
+		json_string = configToJSON();
 	}
 	return updateConfig(json_string);
 }

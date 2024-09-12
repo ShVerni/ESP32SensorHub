@@ -104,7 +104,7 @@ bool ResetButton::saveConfig() {
 bool ResetButton::configureButton() {
 	pinMode(current_config.pin, current_config.mode);
 	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
-	xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 1024, this, 1, &xHandle);
+	xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 8128, this, 1, &xHandle);
 	return xCreated == pdPASS;
 }
 
@@ -125,12 +125,24 @@ void ResetButton::ResetChecker() {
 	}
 }
 
-/// @brief Resets WiFi settings
+/// @brief Resets device settings
 void ResetButton::reset() {
+	// Reset WiFi settings
 	WiFi.mode(WIFI_AP_STA); // Cannot erase if not in STA mode!
 	WiFi.persistent(true);
 	WiFi.disconnect(true, true);
 	WiFi.persistent(false);
+	// Remove all configuration files
+	if (Storage::fileExists("/www")) {
+		for (auto f : Storage::listDir("/www", 5)) {
+			Storage::deleteFile(f);
+		}
+	}
+	if (Storage::fileExists("/settings")) {
+		for (const auto& f : Storage::listDir("/settings", 5)) {
+			Storage::deleteFile(f);
+		}
+	}
 	Serial.println("Rest button pressed...");
 	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
 	delay(3000);
