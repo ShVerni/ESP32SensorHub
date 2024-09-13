@@ -27,6 +27,7 @@ bool LocalDataLogger::begin() {
 		}
 		// Set defaults
 		current_config = { .name = "LocalData.csv", .enabled = false };
+		TaskDescription = { .taskName = "LocalDataLogger", .taskPeriod = 10000 };
 		path = "/data/" + current_config.name;
 		result = saveConfig();
 	} else {
@@ -69,10 +70,8 @@ bool LocalDataLogger::enableLogging(bool enable) {
 				return false;
 			}
 		}
-		return PeriodicTasks::addTask("LocalDataLogger", std::bind(&LocalDataLogger::logData, this));
-	} else {
-		return PeriodicTasks::removeTask("LocalDataLogger");
 	}
+	return enableTask(enable);
 }
 
 /// @brief Sets the configuration for this device
@@ -92,6 +91,8 @@ bool LocalDataLogger::setConfig(String config) {
 	// Assign loaded values
 	current_config.name = doc["name"].as<String>();
 	current_config.enabled = doc["enabled"].as<bool>();
+	TaskDescription.taskPeriod = doc["samplingPeriod"].as<long>();
+	TaskDescription.taskName = doc["taskName"].as<std::string>();
 	path = "/data/" + current_config.name;
 	enableLogging(current_config.enabled);
 	return saveConfig();
@@ -104,8 +105,11 @@ bool LocalDataLogger::saveConfig() {
 }
 
 /// @brief Logs current data from all sensors
-void LocalDataLogger::logData() {
-	if (current_config.enabled) {
+/// @param elapsed The time in ms since this task was last called
+void LocalDataLogger::runTask(long elapsed) {
+	totalElapsed += elapsed;
+	if (current_config.enabled && totalElapsed >= TaskDescription.taskPeriod) {
+		totalElapsed = 0;
 		if (!Storage::fileExists(path)) {
 			if (!Storage::writeFile(path, header)) {
 				return;
@@ -143,6 +147,8 @@ String LocalDataLogger::getConfig() {
 	// Assign current values
 	doc["name"] = current_config.name;
 	doc["enabled"] = current_config.enabled;
+	doc["samplingPeriod"] = TaskDescription.taskPeriod;
+	doc["taskName"] = TaskDescription.taskName;
 
 	// Create string to hold output
 	String output;

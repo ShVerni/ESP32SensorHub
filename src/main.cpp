@@ -137,7 +137,7 @@ void setup() {
 	}
 
 	/******** Add sensors and receivers here ********/
-	
+
 	SignalManager::addReceiver(&reset_button);
 	SignalManager::addReceiver(&logger);
 	SignalManager::addReceiver(&schema_maker);
@@ -195,8 +195,8 @@ void loop() {
 	if (Configuration::currentConfig.tasksEnabled) {
 		// Perform tasks periodically
 		if (current_mills - previous_mills_task > Configuration::currentConfig.period) {
+			PeriodicTasks::callTasks(current_mills - previous_mills_task);
 			previous_mills_task = current_mills;
-			PeriodicTasks::callTasks();
 		}
 	}
 	vTaskDelay(100 / portTICK_PERIOD_MS);

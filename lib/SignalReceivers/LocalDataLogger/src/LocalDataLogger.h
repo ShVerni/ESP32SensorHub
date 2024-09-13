@@ -1,6 +1,7 @@
 /*
 * This file and associated .cpp file are licensed under the GPLv3 License Copyright (c) 2024 Sam Groveman
 * 
+* External libraries used:
 * ArduinoJSON: https://arduinojson.org/
 * 
 * Contributors: Sam Groveman
@@ -9,14 +10,14 @@
 #pragma once
 #include <Arduino.h>
 #include <SignalReceiver.h>
-#include <PeriodicTasks.h>
+#include <PeriodicTask.h>
 #include <SensorManager.h>
 #include <ESP32Time.h>
 #include <Storage.h>
 #include <ArduinoJson.h>
 
 /// @brief Logs sensor data locally
-class LocalDataLogger : public SignalReceiver {
+class LocalDataLogger : public SignalReceiver, public PeriodicTask {
 	private:
 		/// @brief Holds data logger configuration
 		struct {
@@ -44,5 +45,6 @@ class LocalDataLogger : public SignalReceiver {
 		bool begin();
 		String getConfig();
 		bool setConfig(String config);
-		void logData();
+		void runTask(long elapsed);
+		
 };
