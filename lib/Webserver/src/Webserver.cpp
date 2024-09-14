@@ -39,7 +39,7 @@ bool Webserver::ServerStart() {
 	// Handle file uploads
 	server->on("/upload-file", HTTP_POST, [](AsyncWebServerRequest *request) {
 		// Let upload start
-		vTaskDelay(50 / portTICK_PERIOD_MS);
+		delay(50);
 		// Construct response
 		AsyncWebServerResponse *response = request->beginResponse(Webserver::upload_response_code, "text/plain", Webserver::upload_abort ? "Upload failed": "File uploaded");
 		response->addHeader("Connection", "close");
@@ -480,7 +480,7 @@ bool Webserver::ServerStart() {
 	// Update firmware
 	server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request) {
 		// Let update start
-		vTaskDelay(50 / portTICK_PERIOD_MS);
+		delay(50);
 		
 		// Check if should reboot
 		Webserver::shouldReboot = !Update.hasError();
@@ -520,11 +520,11 @@ void Webserver::RebootChecker() {
 			Serial.println("Rebooting from API call...");
 			// Delay to show LED and let server send response
 			EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
-			vTaskDelay(3000 / portTICK_PERIOD_MS);
+			delay(3000 );
 			ESP.restart();
 		}
 		// This loop doesn't need to be tight
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		delay(500);
 	}
 }
 

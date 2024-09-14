@@ -70,7 +70,7 @@ bool ResetButton::setConfig(String config) {
 	// Stop reset checker
 	if(xCreated == pdPASS)
 	{
-		vTaskDelete( xHandle );
+		vTaskDelete(xHandle);
 		xCreated = pdFAIL;
 	}
 	// Allocate the JSON document
@@ -118,10 +118,14 @@ void ResetButton::ResetCheckerTaskWrapper(void* arg) {
 void ResetButton::ResetChecker() {
 	while (true) {
 		if (shouldReset || digitalRead(current_config.pin) == current_config.active) {
-			reset();
+			// Check if button is being held for 5 seconds
+			delay(5000);
+			if(digitalRead(current_config.pin) == current_config.active) {
+				reset();
+			}
 		}
 		// This loop doesn't need to be tight
-		vTaskDelay(50 / portTICK_PERIOD_MS);
+		delay(250);
 	}
 }
 

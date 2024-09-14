@@ -161,7 +161,7 @@ std::tuple<bool, String> SignalManager::processSignalImmediately(int receiverPos
 std::tuple<bool, String> SignalManager::processSignalImmediately(int receiverPosID, int signal, String payload) {
 	// Check if receiver is in-use
 	if(receiverPosID < 0 || receiverPosID >= receivers.size()) {
-		Serial.println("Receiver position Id out of range");
+		Serial.println("Receiver position ID out of range");
 		return { true, R"({"success": false})" };
 	}
 	// Process signal
@@ -178,6 +178,6 @@ void SignalManager::signalProcessor(void* arg) {
 			receivers[signal[0]]->receiveSignal(signal[1], payloads.front());
 			payloads.pop();
 		}
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		delay(100);
 	}
 }

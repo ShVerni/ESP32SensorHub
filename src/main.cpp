@@ -199,5 +199,5 @@ void loop() {
 			previous_mills_task = current_mills;
 		}
 	}
-	vTaskDelay(100 / portTICK_PERIOD_MS);
+	delay(100);
 }
