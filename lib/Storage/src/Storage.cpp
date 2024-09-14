@@ -106,11 +106,11 @@ Storage::Media Storage::getMediaType() {
 	return storageMedia;
 }
 
-/// @brief List the files and folders in a directory
+/// @brief List the files in a directory
 /// @param dirname The directory path to list
 /// @param levels How many levels to recurse into the directory for listing
-/// @return A collection of strings of full paths of the files/folders found
-std::vector<String> Storage::listDir(String dirname, uint8_t levels) {
+/// @return A collection of strings of full paths of the files found
+std::vector<String> Storage::listFiles(String dirname, uint8_t levels) {
 	Serial.println("Listing directory: " + dirname);
 	std::vector<String> folderContents;
 	File root = storageSystem->open(dirname);
@@ -129,12 +129,45 @@ std::vector<String> Storage::listDir(String dirname, uint8_t levels) {
 			Serial.println(file.name());
 			if(levels) {
 				// Recurse and add subdir contents to file list
-				std::vector<String> subdir = listDir(file.path(), levels - 1);
-				for (int i = 0; i < subdir.size(); i++)
-					folderContents.push_back(subdir[i]);
+				for (const auto& f : listFiles(file.path(), levels - 1)) {
+					folderContents.push_back(f);
+				}
 			}
 		} else {
 			folderContents.push_back(String(file.path()));
+		}
+		file = root.openNextFile();
+	}
+	return folderContents;
+}
+
+/// @brief List the folders in a directory
+/// @param dirname The directory path to list
+/// @param levels How many levels to recurse into the directory for listing
+/// @return A collection of strings of full paths of the directories
+std::vector<String> Storage::listDirs(String dirname, uint8_t levels) {
+	Serial.println("Listing directory: " + dirname);
+	std::vector<String> folderContents;
+	File root = storageSystem->open(dirname);
+	if(!root){
+		Serial.println("Failed to open directory");
+		return folderContents;
+	}
+	if (!root.isDirectory()) {
+		Serial.println("Not a directory");
+		return folderContents;
+	}
+	File file = root.openNextFile();
+	while(file) {
+		if(file.isDirectory()) {
+			folderContents.push_back(String(file.path()));
+			Serial.println(file.name());
+			if(levels) {
+				// Recurse and add subdir contents to file list
+				for (const auto& d : listDirs(file.path(), levels - 1)) {
+					folderContents.push_back(d);
+				}
+			}
 		}
 		file = root.openNextFile();
 	}

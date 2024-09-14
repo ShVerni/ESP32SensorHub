@@ -30,7 +30,8 @@ class Storage {
 		static bool begin(int clk, int cmd, int d0, int d1, int d2, int d3);
 		static FS* getFileSystem();
 		static Storage::Media getMediaType();
-		static std::vector<String> listDir(String dirname, uint8_t levels);
+		static std::vector<String> listFiles(String dirname, uint8_t levels);
+		static std::vector<String> listDirs(String dirname, uint8_t levels);
 		static bool fileExists(String path);
 		static bool createDir(String path);
 		static bool removeDir(String path);

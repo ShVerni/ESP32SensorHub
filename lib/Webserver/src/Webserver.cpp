@@ -437,7 +437,7 @@ bool Webserver::ServerStart() {
 				if (request->hasParam("depth")) {
 					depth = request->getParam("depth")->value().toInt();
 				}
-				std::vector<String> file_list = Storage::listDir(path, depth);
+				std::vector<String> file_list = Storage::listFiles(path, depth);
 				JsonDocument files;
 				for (int i = 0; i < file_list.size(); i++) {
 					files["files"][i] = file_list[i];

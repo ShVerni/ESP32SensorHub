@@ -24,15 +24,14 @@ bool ResetButton::begin() {
 		}
 		// Set defaults
 		current_config = { .pin = D4, .mode = modes::BUTTON_PULLUP, .active = states::BUTTON_LOW };
-		result = saveConfig();
+		if (saveConfig()) {
+			return configureButton();
+		}
+		return false;
 	} else {
 		// Load settings
-		result = setConfig(Storage::readFile("/settings/sig/ResetButton.json"));
+		return setConfig(Storage::readFile("/settings/sig/ResetButton.json"));
 	}
-	if (result) {
-		return configureButton();
-	}
-	return false;
 }
 
 /// @brief Receives a signal
@@ -104,7 +103,9 @@ bool ResetButton::saveConfig() {
 bool ResetButton::configureButton() {
 	pinMode(current_config.pin, current_config.mode);
 	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
-	xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 8128, this, 1, &xHandle);
+	if (xCreated != pdPASS) {
+		xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 8128, this, 1, &xHandle);
+	}
 	return xCreated == pdPASS;
 }
 
@@ -118,10 +119,17 @@ void ResetButton::ResetCheckerTaskWrapper(void* arg) {
 void ResetButton::ResetChecker() {
 	while (true) {
 		if (shouldReset || digitalRead(current_config.pin) == current_config.active) {
+			// Debounce
+			delay(10);
 			// Check if button is being held for 5 seconds
-			delay(5000);
-			if(digitalRead(current_config.pin) == current_config.active) {
-				reset();
+			int elapsed = 0;
+			while(digitalRead(current_config.pin) == current_config.active) {
+				delay(10);
+				elapsed++;
+				if (elapsed == 500) {
+					reset();
+					break;	
+				}
 			}
 		}
 		// This loop doesn't need to be tight
@@ -131,24 +139,19 @@ void ResetButton::ResetChecker() {
 
 /// @brief Resets device settings
 void ResetButton::reset() {
+	Serial.println("Rest button pressed...");
+	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
 	// Reset WiFi settings
 	WiFi.mode(WIFI_AP_STA); // Cannot erase if not in STA mode!
 	WiFi.persistent(true);
 	WiFi.disconnect(true, true);
 	WiFi.persistent(false);
-	// Remove all configuration files
-	if (Storage::fileExists("/www")) {
-		for (auto f : Storage::listDir("/www", 5)) {
-			Storage::deleteFile(f);
-		}
+	// Erase storage
+	for (const auto& f : Storage::listFiles("/", 100)) {
+		Storage::deleteFile(f);
 	}
-	if (Storage::fileExists("/settings")) {
-		for (const auto& f : Storage::listDir("/settings", 5)) {
-			Storage::deleteFile(f);
-		}
+	for (const auto& d : Storage::listDirs("/", 100)) {
+		Storage::removeDir(d);
 	}
-	Serial.println("Rest button pressed...");
-	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Rebooting);
-	delay(3000);
 	ESP.restart();		
 }
