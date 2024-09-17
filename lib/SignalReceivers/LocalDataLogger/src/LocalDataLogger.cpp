@@ -1,5 +1,4 @@
 #include "LocalDataLogger.h"
-using std::placeholders::_1;
 
 /// @brief Creates a local data logger
 /// @param RTC Pointer to RTC to use for time
@@ -14,25 +13,15 @@ bool LocalDataLogger::begin() {
 	Description.name = "Local Data Logger";
 	Description.id = 1;
 	bool result = false;
-	if (!Storage::fileExists("/settings/sig/LocalLogger.json")) {
-		if (!Storage::fileExists("/settings/sig")) {
-			if (!Storage::fileExists("/settings")) {
-				if (!Storage::createDir("/settings")) {
-					return false;
-				}
-			}
-			if (!Storage::createDir("/settings/sig")) {
-					return false;
-			}
-		}
+	if (!Storage::fileExists(config_path)) {
 		// Set defaults
 		current_config = { .name = "LocalData.csv", .enabled = false };
 		TaskDescription = { .taskName = "LocalDataLogger", .taskPeriod = 10000 };
 		path = "/data/" + current_config.name;
-		result = saveConfig();
+		result = saveConfig(config_path, getConfig());
 	} else {
 		// Load settings
-		result = setConfig(Storage::readFile("/settings/sig/LocalLogger.json"));
+		result = setConfig(Storage::readFile(config_path));
 	}
 	return result;
 }
@@ -95,13 +84,7 @@ bool LocalDataLogger::setConfig(String config) {
 	TaskDescription.taskName = doc["taskName"].as<std::string>();
 	path = "/data/" + current_config.name;
 	enableLogging(current_config.enabled);
-	return saveConfig();
-}
-
-/// @brief Saves the current config to a JSON file
-/// @return True on success
-bool LocalDataLogger::saveConfig() {
-	return Storage::writeFile("/settings/sig/LocalLogger.json", getConfig());
+	return saveConfig(config_path, getConfig());
 }
 
 /// @brief Logs current data from all sensors

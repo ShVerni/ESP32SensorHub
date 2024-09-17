@@ -3,7 +3,7 @@
 /// @brief Creates a Data Template object
 /// @param ConfigFile The file name to store settings in
 DataTemplate::DataTemplate(String ConfigFile) {
-	path = "/settings/sig/" + ConfigFile;
+	config_path = "/settings/sig/" + ConfigFile;
 }
 
 /// @brief Starts a Data Template object
@@ -17,23 +17,13 @@ bool DataTemplate::begin() {
 	Description.id = 3;
 	bool result = false;
 	// Create settings directory if necessary
-	if (!Storage::fileExists(path)) {
-		if (!Storage::fileExists("/settings/sig")) {
-			if (!Storage::fileExists("/settings")) {
-				if (!Storage::createDir("/settings")) {
-					return false;
-				}
-			}
-			if (!Storage::createDir("/settings/sig")) {
-					return false;
-			}
-		}
+	if (!checkConfig(config_path)) {
 		// Set defaults
 		current_config = { .template_start = "", .template_end = "", .template_data = "{name=\"%PARAMETER%\",type=\"%UNIT%\"}%VALUE%%N%" };
-		result = saveConfig();
+		result = saveConfig(config_path, getConfig());
 	} else {
 		// Load settings
-		result = setConfig(Storage::readFile(path));
+		result = setConfig(Storage::readFile(config_path));
 	}
 	return result;
 }
@@ -104,11 +94,5 @@ bool DataTemplate::setConfig(String config) {
 	current_config.template_start = doc["template_start"].as<String>();
 	current_config.template_end = doc["template_end"].as<String>();
 	current_config.template_data = doc["template_data"].as<String>();
-	return saveConfig();
-}
-
-/// @brief Saves the current config to a JSON file
-/// @return True on success
-bool DataTemplate::saveConfig() {
-	return Storage::writeFile(path, getConfig());
+	return saveConfig(config_path, getConfig());
 }

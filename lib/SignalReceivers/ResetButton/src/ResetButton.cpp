@@ -11,20 +11,10 @@ bool ResetButton::begin() {
 	Description.id = 0;
 	bool result = false;
 	// Create settings directory if necessary
-	if (!Storage::fileExists("/settings/sig/ResetButton.json")) {
-		if (!Storage::fileExists("/settings/sig")) {
-			if (!Storage::fileExists("/settings")) {
-				if (!Storage::createDir("/settings")) {
-					return false;
-				}
-			}
-			if (!Storage::createDir("/settings/sig")) {
-					return false;
-			}
-		}
+	if (!checkConfig(config_path)) {
 		// Set defaults
-		current_config = { .pin = D4, .mode = modes::BUTTON_PULLUP, .active = states::BUTTON_LOW };
-		if (saveConfig()) {
+		current_config = { .pin = D4, .mode = "Input pull-up", .active = "Active low" };
+		if (saveConfig(config_path, getConfig())) {
 			return configureButton();
 		}
 		return false;
@@ -52,8 +42,13 @@ String ResetButton::getConfig() {
 	JsonDocument doc;
 	// Assign current values
 	doc["pin"] = current_config.pin;
-	doc["mode"] = current_config.mode;
-	doc["active"] = current_config.active;
+	doc["mode"]["current"] = current_config.mode;
+	doc["mode"]["options"][0] = "Input";
+	doc["mode"]["options"][1] = "Input pull-up";
+	doc["mode"]["options"][2] = "Input pull-down";
+	doc["active"]["current"] =  current_config.active;
+	doc["active"]["options"][0] = "Active low";
+	doc["active"]["options"][1] = "Active high";
 
 	// Create string to hold output
 	String output;
@@ -84,27 +79,21 @@ bool ResetButton::setConfig(String config) {
 	}
 	// Assign loaded values
 	current_config.pin = doc["pin"].as<int>();
-	current_config.active = doc["active"].as<states>();
-	current_config.mode = doc["mode"].as<modes>();
-	if (!saveConfig()) {
+	current_config.active = doc["active"]["current"].as<std::string>();
+	current_config.mode = doc["mode"]["current"].as<std::string>();
+	if (!saveConfig(config_path, getConfig())) {
 		return false;
 	}
 	return configureButton();
 }
 
-/// @brief Saves the current config to a JSON file
-/// @return True on success
-bool ResetButton::saveConfig() {
-	return Storage::writeFile("/settings/sig/ResetButton.json", getConfig());
-}
-
 /// @brief Used to configure the button and start the reset checker task
 /// @return True on success
 bool ResetButton::configureButton() {
-	pinMode(current_config.pin, current_config.mode);
+	pinMode(current_config.pin, modes[current_config.mode]);
 	// Start the loop that checks for resets (could use an ISR instead but that has its own issues)
 	if (xCreated != pdPASS) {
-		xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 8128, this, 1, &xHandle);
+		xCreated = xTaskCreate(ResetCheckerTaskWrapper, "Reset Checker Loop", 4096, this, 1, &xHandle);
 	}
 	return xCreated == pdPASS;
 }
@@ -118,12 +107,12 @@ void ResetButton::ResetCheckerTaskWrapper(void* arg) {
 /// @brief Checks if a reset was requested
 void ResetButton::ResetChecker() {
 	while (true) {
-		if (shouldReset || digitalRead(current_config.pin) == current_config.active) {
+		if (shouldReset || digitalRead(current_config.pin) == states[current_config.active]) {
 			// Debounce
 			delay(10);
 			// Check if button is being held for 5 seconds
 			int elapsed = 0;
-			while(digitalRead(current_config.pin) == current_config.active) {
+			while(digitalRead(current_config.pin) == states[current_config.active]) {
 				delay(10);
 				elapsed++;
 				if (elapsed == 500) {

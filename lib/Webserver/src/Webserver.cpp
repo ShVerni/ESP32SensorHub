@@ -560,10 +560,11 @@ void Webserver::onUpload_file(AsyncWebServerRequest *request, String filename, s
 	}
 	if (final) {
 		// Close the file handle as the upload is now done
+		String path = request->_tempFile.path();
 		request->_tempFile.close();
 		if (Webserver::upload_abort) {
 			// Remove failed upload
-			Storage::getFileSystem()->remove(request->_tempFile.path());
+			Storage::deleteFile(path);
 		} else {
 			Webserver::upload_response_code = HTTP_CODE_CREATED;
 		}

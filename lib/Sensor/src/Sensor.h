@@ -7,9 +7,10 @@
 #pragma once
 #include <Arduino.h>
 #include <vector>
+#include <DeviceConfig.h>
 
 /// @brief Defines a generic sensor class for inheriting 
-class Sensor {
+class Sensor : public DeviceConfig {
 	public:
 		/// @brief Possible results from a calibration call
 		enum calibration_response {
@@ -44,7 +45,5 @@ class Sensor {
 
 		virtual bool begin();
 		virtual bool takeMeasurement();
-		virtual String getConfig();
-		virtual bool setConfig(String config);
 		virtual std::tuple<Sensor::calibration_response, String> calibrate(int step);
 };

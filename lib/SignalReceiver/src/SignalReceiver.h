@@ -7,9 +7,10 @@
 #pragma once
 #include <Arduino.h>
 #include <map>
+#include <DeviceConfig.h>
 
 /// @brief Defines a generic signal receiver class for inheriting 
-class SignalReceiver {
+class SignalReceiver: public DeviceConfig {
 	public:
 		/// @brief Holds the description of the device capable of receiving signals
 		struct {
@@ -31,6 +32,4 @@ class SignalReceiver {
 
 		virtual bool begin();
 		virtual std::tuple<bool, String> receiveSignal(int signal, String payload = "");
-		virtual String getConfig();
-		virtual bool setConfig(String config);
 };

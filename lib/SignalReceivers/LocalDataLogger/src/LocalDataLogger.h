@@ -34,10 +34,12 @@ class LocalDataLogger : public SignalReceiver, public PeriodicTask {
 		/// @brief Full path to data file
 		String path;
 
+		/// @brief Path to configuration file
+		const String config_path = "/settings/sig/LocalLogger.json";
+
 		/// @brief Pointer to the clock object in use
 		ESP32Time* rtc;
 
-		bool saveConfig();
 		bool enableLogging(bool enable);
 
 	public:
@@ -45,6 +47,5 @@ class LocalDataLogger : public SignalReceiver, public PeriodicTask {
 		bool begin();
 		String getConfig();
 		bool setConfig(String config);
-		void runTask(long elapsed);
-		
+		void runTask(long elapsed);	
 };

@@ -28,9 +28,8 @@ class DataTemplate : public SignalReceiver {
 		} current_config;
 
 		/// @brief Full path to config file
-		String path;
+		String config_path;
 
-		bool saveConfig();
 	public:
 		DataTemplate(String ConfigFile = "DataTemplate.json");
 		bool begin();

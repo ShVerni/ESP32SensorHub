@@ -16,16 +16,3 @@ std::tuple<bool, String> SignalReceiver::receiveSignal(int signal, String payloa
 	else 
 		return {true , R"({"success": true})" };
 }
-
-/// @brief Gets any available config settings for the current device
-/// @return A JSON string of configurable settings
-String SignalReceiver::getConfig() {
-	return "{}";
-}
-
-/// @brief Updates configuration of device
-/// @param config A JSON string of the configuration settings
-/// @return True on success
-bool SignalReceiver::setConfig(String config) {
-	return true;
-}
