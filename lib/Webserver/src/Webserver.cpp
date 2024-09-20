@@ -3,6 +3,9 @@
 /// @brief Holds current firmware version
 extern const String FW_VERSION;
 
+/// @brief Indicates if te hub booted successfully
+extern bool POSTSuccess;
+
 // Initialize static variables
 bool Webserver::upload_abort = false;
 bool Webserver::shouldReboot = false;
@@ -96,33 +99,40 @@ bool Webserver::ServerStart() {
 			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 		}
 	});
-
 	// Gets last measurement. Add GET paramater "update" (/sensors/measurement?update) to take a new measurement first
 	server->on("/sensors/measurement", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("update")) {
-			// Attempt to take new measurement
-			if (!SensorManager::takeMeasurement()) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
-				return;
+		if (POSTSuccess) {
+			if (request->hasParam("update")) {
+				// Attempt to take new measurement
+				if (!SensorManager::takeMeasurement()) {
+					request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not take measurement");
+					return;
+				}
 			}
+			request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
+		} else {
+			request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain");
 		}
-		request->send(HTTP_CODE_OK, "text/json", SensorManager::getLastMeasurement());
 	});
 	
 	// Runs a calibration procedure on a sensor
 	server->on("/sensors/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("sensor", true) && request->hasParam("step", true)) {
-			// Parse data payload
-			int sensorPosID = request->getParam("sensor", true)->value().toInt();
-			int step = request->getParam("step", true)->value().toInt();
+		if (POSTSuccess) {
+			if (request->hasParam("sensor", true) && request->hasParam("step", true)) {
+				// Parse data payload
+				int sensorPosID = request->getParam("sensor", true)->value().toInt();
+				int step = request->getParam("step", true)->value().toInt();
 
-			// Run sensor calibration
-			std::tuple<Sensor::calibration_response, String> response = SensorManager::calibrateSensor(sensorPosID, step);
+				// Run sensor calibration
+				std::tuple<Sensor::calibration_response, String> response = SensorManager::calibrateSensor(sensorPosID, step);
 
-			// Create response
-			request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
+				// Create response
+				request->send(HTTP_CODE_OK, "text/json", "{ \"response\":" + String(std::get<0>(response)) + ",\"message\":" + std::get<1>(response) + "}");
+			} else {
+				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+			}
 		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+			request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain");
 		}
 	});
 
@@ -160,82 +170,94 @@ bool Webserver::ServerStart() {
 
 	// Adds a signal to the signal queue using the signal's name or ID
 	server->on("/signals/add", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
-			// Parse data payload
-			bool id = true;
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			// Attempt to add signal to queue
-			bool success = false;
-			if (request->hasParam("id", true)) {
-				success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+		if (POSTSuccess) {
+			if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
+				// Parse data payload
+				bool id = true;
+				int receiverPosID = request->getParam("receiver", true)->value().toInt();
+				String payload = "";
+				if (request->hasParam("payload", true)) {
+					payload = request->getParam("payload", true)->value();
+				}
+				// Attempt to add signal to queue
+				bool success = false;
+				if (request->hasParam("id", true)) {
+					success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+				} else {
+					success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("name", true)->value(), payload);
+				}
+				if (!success) {
+					request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
+				} else {
+					request->send(HTTP_CODE_OK, "text/plain", "OK");
+				}
 			} else {
-				success = SignalManager::addSignalToQueue(receiverPosID, request->getParam("name", true)->value(), payload);
-			}
-			if (!success) {
-				request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain", "Could not add signal to queue");
-			} else {
-				request->send(HTTP_CODE_OK, "text/plain", "OK");
+				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 			}
 		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+			request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain");
 		}
 	});
 
 	// Sends a signal to a receiver immediately using the signal'a name or ID, and returns any response
 	server->on("/signals/execute", HTTP_POST, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
-			// Parse data payload
-			bool id = true;
-			int receiverPosID = request->getParam("receiver", true)->value().toInt();
-			String payload = "";
-			if (request->hasParam("payload", true)) {
-				payload = request->getParam("payload", true)->value();
-			}
-			std::tuple<bool, String> result;
-			if (request->hasParam("id", true)) {
-				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+		if (POSTSuccess) {	
+			if (request->hasParam("receiver", true) && (request->hasParam("id", true) || request->hasParam("name", true))) {
+				// Parse data payload
+				bool id = true;
+				int receiverPosID = request->getParam("receiver", true)->value().toInt();
+				String payload = "";
+				if (request->hasParam("payload", true)) {
+					payload = request->getParam("payload", true)->value();
+				}
+				std::tuple<bool, String> result;
+				if (request->hasParam("id", true)) {
+					result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id", true)->value().toInt(), payload);
+				} else {
+					result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name", true)->value(), payload);
+				}
+				String mime = "text/json";
+				if (!std::get<0>(result)) {
+					mime = "text/plain";
+				}
+				// Execute signal and return response
+				request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 			} else {
-				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name", true)->value(), payload);
+				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 			}
-			String mime = "text/json";
-			if (!std::get<0>(result)) {
-				mime = "text/plain";
-			}
-			// Execute signal and return response
-			request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+			request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain");
 		}
 	});
 
 	// Sends a signal to a receiver immediately using the signal'a name or ID, and returns any response
 	server->on("/signals/execute", HTTP_GET, [this](AsyncWebServerRequest *request) {
-		if (request->hasParam("receiver") && (request->hasParam("id") || request->hasParam("name"))) {
-			// Parse data payload
-			bool id = true;
-			int receiverPosID = request->getParam("receiver")->value().toInt();
-			String payload = "";
-			if (request->hasParam("payload")) {
-				payload = request->getParam("payload")->value();
-			}
-			std::tuple<bool, String> result;
-			if (request->hasParam("id")) {
-				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id")->value().toInt(), payload);
+		if (POSTSuccess){
+			if (request->hasParam("receiver") && (request->hasParam("id") || request->hasParam("name"))) {
+				// Parse data payload
+				bool id = true;
+				int receiverPosID = request->getParam("receiver")->value().toInt();
+				String payload = "";
+				if (request->hasParam("payload")) {
+					payload = request->getParam("payload")->value();
+				}
+				std::tuple<bool, String> result;
+				if (request->hasParam("id")) {
+					result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("id")->value().toInt(), payload);
+				} else {
+					result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name")->value(), payload);
+				}
+				String mime = "text/json";
+				if (!std::get<0>(result)) {
+					mime = "text/plain";
+				}
+				// Execute signal and return response
+				request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 			} else {
-				result = SignalManager::processSignalImmediately(receiverPosID, request->getParam("name")->value(), payload);
+				request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
 			}
-			String mime = "text/json";
-			if (!std::get<0>(result)) {
-				mime = "text/plain";
-			}
-			// Execute signal and return response
-			request->send(HTTP_CODE_OK, mime, std::get<1>(result));
 		} else {
-			request->send(HTTP_CODE_BAD_REQUEST, "text/plain", "Bad request data");
+			request->send(HTTP_CODE_INTERNAL_SERVER_ERROR, "text/plain");
 		}
 	});
 

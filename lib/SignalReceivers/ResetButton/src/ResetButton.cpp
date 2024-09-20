@@ -1,5 +1,11 @@
 #include "ResetButton.h"
 
+/// @brief Creates a reset button
+/// @param Pin the pin to use for the button
+ResetButton::ResetButton(int Pin) {
+	current_config.pin = Pin;
+}
+
 /// @brief Starts a reset button
 /// @return True on success
 bool ResetButton::begin() {
@@ -13,7 +19,8 @@ bool ResetButton::begin() {
 	// Create settings directory if necessary
 	if (!checkConfig(config_path)) {
 		// Set defaults
-		current_config = { .pin = D4, .mode = "Input pull-up", .active = "Active low" };
+		current_config.mode = "Input pull-up";
+		current_config.active = "Active low";
 		if (saveConfig(config_path, getConfig())) {
 			return configureButton();
 		}

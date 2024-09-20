@@ -3,7 +3,7 @@
 * 
 * ArduinoJSON: https://arduinojson.org/
 * 
-* This could be done as a periodic task but is implemented with its own task loop as an example for how to do that
+* This could be done as a periodic task but is implemented with its own task loop so it can run even if there are errors starting
 *
 * Contributors: Sam Groveman
 */
@@ -12,7 +12,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <SignalReceiver.h>
-#include <Storage.h>
 #include <EventBroadcaster.h>
 #include <ArduinoJson.h>
 #include <unordered_map>
@@ -60,6 +59,7 @@ class ResetButton : public SignalReceiver {
 		static void ResetCheckerTaskWrapper(void* arg);
 
 	public:
+		ResetButton(int Pin);
 		bool begin();
 		std::tuple<bool, String> receiveSignal(int signal, String payload = "");
 		String getConfig();

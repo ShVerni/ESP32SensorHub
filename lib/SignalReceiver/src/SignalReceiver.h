@@ -23,7 +23,7 @@ class SignalReceiver: public DeviceConfig {
 			/// @brief The name of this device
 			String name;
 			
-			/// @brief Contains of map of signals this device can receive and their ID numbers. Signal names must only alphanumeric and underscores, and contain at least on letter
+			/// @brief Contains of map of signals this device can receive and their ID numbers. Signal names must contain only alphanumeric and underscores, and contain at least one letter
 			std::map<String, int> signals;
 
 			/// @brief The ID of this device

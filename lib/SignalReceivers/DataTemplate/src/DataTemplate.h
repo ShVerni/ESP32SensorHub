@@ -9,7 +9,6 @@
 #include <Arduino.h>
 #include <SignalReceiver.h>
 #include <SensorManager.h>
-#include <Storage.h>
 #include <ArduinoJson.h>
 
 /// @brief Allows retrieval of sensor data formatted for Prometheus ingest

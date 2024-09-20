@@ -23,9 +23,13 @@
 #include <LEDIndicator.h>
 #include <LocalDataLogger.h>
 #include <DataTemplate.h>
+#include <TimerSwitch.h>
 
 /// @brief Current firmware version
 extern const String FW_VERSION = "0.5.0";
+
+/// @brief Set to true when the POST finishes successfully
+bool POSTSuccess = false;
 
 /// @brief Stores settings in NVS
 Preferences settings;
@@ -42,13 +46,16 @@ AsyncWebServer server(80);
 LEDIndicator led(D8, 1);
 
 /// @brief Reset button object
-ResetButton reset_button;
+ResetButton reset_button(D4);
 
 /// @brief For logging data to local storage
 LocalDataLogger logger(&rtc);
 
 /// @brief For retrieving data formatted for Prometheus
 DataTemplate schema_maker;
+
+/// @brief Timer switch
+TimerSwitch timer1(&rtc, D9, "TimerSwitch1.json");
 
 /******** End sensor and receiver object declaration ********/
 
@@ -141,6 +148,7 @@ void setup() {
 	SignalManager::addReceiver(&reset_button);
 	SignalManager::addReceiver(&logger);
 	SignalManager::addReceiver(&schema_maker);
+	SignalManager::addReceiver(&timer1);
 
 	/******** End sensor and receiver addition section ********/
 
@@ -174,6 +182,7 @@ void setup() {
 	// Ready!
 	EventBroadcaster::broadcastEvent(EventBroadcaster::Events::Ready);
 	Serial.println("System ready!");
+	POSTSuccess = true;
 }
 
 // Used for tracking time intervals for timed events
